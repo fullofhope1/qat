@@ -7,9 +7,10 @@ if (!isset($_GET['id'])) {
 }
 
 $id = (int)$_GET['id'];
-$stmt = $pdo->prepare('SELECT * FROM customers WHERE id = ?');
-$stmt->execute([$id]);
-$customer = $stmt->fetch();
+$repo = new CustomerRepository($pdo);
+$service = new CustomerService($repo);
+$customer = $service->getCustomer($id);
+
 if (!$customer) {
     header('Location: customers.php');
     exit;

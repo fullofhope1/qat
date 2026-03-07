@@ -7,10 +7,14 @@ if (!isset($_SESSION['user_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     try {
-        $stmt = $pdo->prepare("DELETE FROM qat_deposits WHERE id = ?");
-        $stmt->execute([$_POST['id']]);
+        $expenseRepo = new ExpenseRepository($pdo);
+        $depositRepo = new DepositRepository($pdo);
+        $staffRepo = new StaffRepository($pdo);
+        $service = new ExpenseService($expenseRepo, $depositRepo, $staffRepo);
+
+        $service->deleteDeposit($_POST['id']);
         header("Location: ../expenses.php?success=deleted");
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         header("Location: ../expenses.php?error=" . urlencode($e->getMessage()));
     }
     exit;

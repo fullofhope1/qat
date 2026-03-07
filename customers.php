@@ -2,9 +2,10 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Fetch Customers
-$stmt = $pdo->query("SELECT * FROM customers WHERE is_deleted = 0 ORDER BY name ASC");
-$customers = $stmt->fetchAll();
+// Fetch Customers via Clean Architecture
+$customerRepo = new CustomerRepository($pdo);
+$customerService = new CustomerService($customerRepo);
+$customers = $customerService->listCustomers();
 ?>
 
 <div class="row">

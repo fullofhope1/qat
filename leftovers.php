@@ -9,7 +9,7 @@ $stmt = $pdo->prepare("SELECT p.id, p.vendor_name, p.qat_type_id, p.quantity_kg,
                        FROM purchases p
                        JOIN qat_types t ON p.qat_type_id = t.id
                        LEFT JOIN providers prov ON p.provider_id = prov.id
-                       WHERE p.purchase_date = ? AND p.status = 'Fresh'");
+                       WHERE p.purchase_date = ? AND p.status IN ('Fresh', 'Momsi')");
 $stmt->execute([$today]);
 $stocks = $stmt->fetchAll();
 

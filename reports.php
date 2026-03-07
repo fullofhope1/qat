@@ -46,13 +46,9 @@ if ($reportType === 'Monthly') {
 }
 
 // 0. Provider filtering for detail views
+$providerRepo = new ProviderRepository($pdo);
 $provider_id = $_GET['provider_id'] ?? null;
-$providersWithSales = [];
-try {
-    $providersWithSales = $pdo->query("SELECT DISTINCT prov.id, prov.name FROM providers prov JOIN purchases p ON prov.id = p.provider_id JOIN sales s ON p.id = s.purchase_id ORDER BY prov.name")->fetchAll();
-} catch (Exception $e) {
-    // Fallback if schema differs
-}
+$providersWithSales = $providerRepo->getWithSales();
 
 // Additional common filters
 if ($reportType === 'Monthly') {
@@ -67,164 +63,122 @@ if ($reportType === 'Monthly') {
 }
 
 // --- CORE DATA FETCHING ---
-// 1. Overview Totals
-$stmt = $pdo->prepare("SELECT SUM(price) FROM sales $whereSQL_Sales");
-$stmt->execute($params);
-$totalSales = $stmt->fetchColumn() ?: 0;
+// Initialization via Clean Architecture
+$reportRepo = new ReportRepository($pdo);
+$service = new ReportService($reportRepo);
 
-$stmt = $pdo->prepare("SELECT SUM(net_cost) FROM purchases $whereSQL_Purch");
-$stmt->execute($params);
-$totalPurchases = $stmt->fetchColumn() ?: 0;
+// --- CORE DATA FETCHING ---
+$overview = $service->getOverviewData($reportType, $date, $month, $year);
+$totalSales = $overview['total_sales'];
+$totalPurchases = $overview['total_purchases'];
+$totalExpenses = $overview['total_expenses'];
+$totalDebt = $overview['total_debt'];
+$overdueCount = $overview['overdue_count'];
+$todayDue = $overview['today_due'];
+$tomorrowDue = $overview['tomorrow_due'];
+$listRefunds = $overview['refunds'];
 
-$stmt = $pdo->prepare("SELECT SUM(amount) FROM expenses $whereSQL_Exp");
-$stmt->execute($params);
-$totalExpenses = $stmt->fetchColumn() ?: 0;
+// Tab-specific data
+$listSales = ($view === 'Sales' || $view === 'Printable') ? $service->getDetailedViewData('Sales', $reportType, $date, $month, $year, $provider_id) : [];
+$listPurch = ($view === 'Receiving' || $view === 'Printable') ? $service->getDetailedViewData('Receiving', $reportType, $date, $month, $year) : [];
+$listExp = ($view === 'Expenses' || $view === 'Printable') ? $service->getDetailedViewData('Expenses', $reportType, $date, $month, $year) : [];
+$listWaste = ($view === 'Waste' || $view === 'Printable') ? $service->getDetailedViewData('Waste', $reportType, $date, $month, $year) : [];
 
-// 4. Debt Statistics (Global - not dependent on report period as they are current status)
-$totalDebt = $pdo->query("SELECT SUM(price - paid_amount) FROM sales WHERE is_paid = 0")->fetchColumn() ?: 0;
-$overdueCount = $pdo->query("SELECT COUNT(*) FROM sales WHERE is_paid = 0 AND due_date < CURDATE()")->fetchColumn() ?: 0;
-$todayDue = $pdo->query("SELECT SUM(price - paid_amount) FROM sales WHERE is_paid = 0 AND due_date = CURDATE()")->fetchColumn() ?: 0;
-$tomorrowDue = $pdo->query("SELECT SUM(price - paid_amount) FROM sales WHERE is_paid = 0 AND due_date = DATE_ADD(CURDATE(), INTERVAL 1 DAY)")->fetchColumn() ?: 0;
-
-// Refunds
-if ($reportType === 'Monthly') $whereSQL_Ref = "WHERE DATE_FORMAT(r.created_at, '%Y-%m') = ?";
-elseif ($reportType === 'Yearly') $whereSQL_Ref = "WHERE YEAR(r.created_at) = ?";
-else $whereSQL_Ref = "WHERE DATE(r.created_at) = ?";
-
-$stmt = $pdo->prepare("SELECT r.*, c.name as cust_name FROM refunds r LEFT JOIN customers c ON r.customer_id = c.id $whereSQL_Ref ORDER BY r.id DESC");
-$stmt->execute($params);
-$listRefunds = $stmt->fetchAll();
-
-// --- TAB SPECIFIC DATA FETCHING ---
-$listSales = [];
-$listPurch = [];
-$listExp = [];
-$listWaste = [];
-
-if ($view === 'Sales' || $view === 'Printable') {
-    $where_sales_detail = $whereSQL_Sales;
-    $params_sales = $params;
-    if ($provider_id) {
-        $where_sales_detail .= " AND p.provider_id = ?";
-        $params_sales[] = $provider_id;
-    }
-    $stmt = $pdo->prepare("SELECT s.*, c.name as cust_name, t.name as type_name, prov.name as prov_name 
-                           FROM sales s 
-                           LEFT JOIN customers c ON s.customer_id = c.id 
-                           LEFT JOIN qat_types t ON s.qat_type_id = t.id
-                           LEFT JOIN purchases p ON s.purchase_id = p.id
-                           LEFT JOIN providers prov ON p.provider_id = prov.id
-                           $where_sales_detail ORDER BY s.id DESC");
-    $stmt->execute($params_sales);
-    $listSales = $stmt->fetchAll();
-}
-if ($view === 'Receiving' || $view === 'Printable') {
-    $stmt = $pdo->prepare("SELECT p.*, t.name as type_name, prov.name as prov_name 
-                           FROM purchases p 
-                           LEFT JOIN qat_types t ON p.qat_type_id = t.id 
-                           LEFT JOIN providers prov ON p.provider_id = prov.id
-                           $whereSQL_Purch ORDER BY p.id DESC");
-    $stmt->execute($params);
-    $listPurch = $stmt->fetchAll();
-}
-if ($view === 'Expenses' || $view === 'Printable') {
-    $stmt = $pdo->prepare("SELECT e.*, s.name as staff_name FROM expenses e LEFT JOIN staff s ON e.staff_id = s.id $whereSQL_Exp ORDER BY e.id DESC");
-    $stmt->execute($params);
-    $listExp = $stmt->fetchAll();
-}
-if ($view === 'Waste' || $view === 'Printable') {
-    $where_waste = "";
-    if ($reportType === 'Monthly') $where_waste = "WHERE DATE_FORMAT(l.sale_date, '%Y-%m') = ?";
-    elseif ($reportType === 'Yearly') $where_waste = "WHERE YEAR(l.sale_date) = ?";
-    else $where_waste = "WHERE l.sale_date = ?";
-
-    $stmt = $pdo->prepare("SELECT l.*, t.name as type_name, prov.name as prov_name 
-                           FROM leftovers l 
-                           LEFT JOIN qat_types t ON l.qat_type_id = t.id
-                           LEFT JOIN purchases p ON l.purchase_id = p.id
-                           LEFT JOIN providers prov ON p.provider_id = prov.id
-                           $where_waste AND l.status IN ('Dropped', 'Auto_Dropped') ORDER BY l.id DESC");
-    $stmt->execute($params);
-    $listWaste = $stmt->fetchAll();
-}
-
-// Final totals for Summary/Printable/Dashboard
+// --- SUMMARY & CASH CALCULATION ---
 if (in_array($view, ['Summary', 'Printable', 'Dashboard'])) {
-    // 1. Fetch elements needed for cash calculation
-    $stmt = $pdo->prepare("SELECT SUM(CASE WHEN payment_method = 'Cash' THEN price ELSE 0 END) as cash_sales FROM sales s $whereSQL_Sales");
-    $stmt->execute($params);
-    $cashSales = $stmt->fetchColumn() ?: 0;
+    $cashSummary = $service->getCashSummary($reportType, $date, $month, $year);
+    $remainingCash = $cashSummary['remaining_cash'];
+    $cashSales = $cashSummary['cash_sales'];
+    $collectedPayments = $cashSummary['collected_payments'];
+    $depositsYER = $cashSummary['deposits_yer'];
+    $cashRefunds = $cashSummary['cash_refunds'];
 
-    $stmt = $pdo->prepare("SELECT SUM(amount) FROM payments $whereSQL_Pay");
-    $stmt->execute($params);
-    $collectedPayments = $stmt->fetchColumn() ?: 0;
-
-    $stmt = $pdo->prepare("SELECT SUM(amount) FROM qat_deposits $whereSQL_Dep AND currency = 'YER'");
-    $stmt->execute($params);
-    $depositsYER = $stmt->fetchColumn() ?: 0;
-
-    $stmt = $pdo->prepare("SELECT SUM(amount) FROM refunds r $whereSQL_Ref AND refund_type = 'Cash'");
-    $stmt->execute($params);
-    $cashRefunds = $stmt->fetchColumn() ?: 0;
-
-    $remainingCash = ($cashSales + $collectedPayments) - ($totalExpenses + $cashRefunds + $depositsYER);
-
-    // 2. DASHBOARD SPECIFIC
     if ($view === 'Dashboard') {
-        $totalReceivables = $pdo->query("SELECT SUM(total_debt) FROM customers")->fetchColumn() ?: 0;
-        $inventoryValue = $pdo->query("SELECT SUM(agreed_price) FROM purchases WHERE status = 'Fresh'")->fetchColumn() ?: 0; // Simplified estimation
+        $dashStats = $service->getDashboardStats();
+        $totalReceivables = $dashStats['total_receivables'];
+        $inventoryValue = $dashStats['inventory_value'];
         $netWorth = $totalReceivables + $remainingCash + $inventoryValue;
         $netCash = $remainingCash;
         $netProfit = ($totalSales - $cashRefunds) - $totalPurchases - $totalExpenses;
     }
 }
-
-// PREMIUM STYLES FOR REPORTS
 ?>
+
 <style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        --accent-color: #ffc107;
+        --royal-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+    }
+
     .report-card-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        border-radius: 15px 15px 0 0 !important;
-        padding: 1.5rem 2rem;
+        background: var(--primary-gradient);
+        border-radius: 20px 20px 0 0 !important;
+        padding: 2rem 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .report-card-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
     }
 
     .report-nav-pills .nav-link {
-        border-radius: 50px;
-        padding: 0.5rem 1.25rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        margin-bottom: 5px;
-        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        margin-bottom: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        font-size: 0.85rem;
     }
 
     .report-nav-pills .nav-link.active {
-        background: #ffc107 !important;
+        background: var(--accent-color) !important;
         color: #000 !important;
-        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
     }
 
     .report-nav-pills .nav-link:not(.active):hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ffc107 !important;
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff !important;
+        border-color: rgba(255, 255, 255, 0.3);
     }
 
-    .filter-section {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    .filter-pill-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 18px;
+        padding: 1.25rem;
+        margin-top: -1.5rem;
+        box-shadow: var(--royal-shadow);
+        border: 1px solid rgba(255, 255, 255, 1);
+        z-index: 10;
+        position: relative;
     }
 
     .report-title-icon {
-        width: 45px;
-        height: 45px;
-        background: rgba(255, 255, 255, 0.2);
+        width: 55px;
+        height: 55px;
+        background: rgba(255, 255, 255, 0.15);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 10px;
-        margin-left: 15px;
+        border-radius: 15px;
+        margin-left: 20px;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
     .btn-update-report {
@@ -285,30 +239,30 @@ if (in_array($view, ['Summary', 'Printable', 'Dashboard'])) {
                     </ul>
                 </div>
 
-                <!-- Filters Section -->
-                <div class="bg-white text-dark p-3 rounded-4 shadow-sm">
+                <!-- Filters Section (Overlapping) -->
+                <div class="filter-pill-container no-print">
                     <form class="row align-items-end g-3" method="GET">
                         <input type="hidden" name="view" value="<?= $view ?>">
 
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted mb-1">نوع التقرير</label>
-                            <select name="report_type" class="form-select border-0 bg-light fw-bold py-2 shadow-none" id="repType" onchange="toggleInputs()" style="border-radius: 10px;">
-                                <option value="Daily" <?= $reportType == 'Daily' ? 'selected' : '' ?>>📅 تقرير يومي</option>
-                                <option value="Monthly" <?= $reportType == 'Monthly' ? 'selected' : '' ?>>🗓️ تقرير شهري</option>
-                                <option value="Yearly" <?= $reportType == 'Yearly' ? 'selected' : '' ?>>📊 تقرير سنوي</option>
+                            <label class="form-label small fw-bold text-muted mb-1 px-2">📅 نوع التقرير</label>
+                            <select name="report_type" class="form-select border-0 bg-light fw-bold py-2 shadow-sm" id="repType" onchange="toggleInputs()" style="border-radius: 12px;">
+                                <option value="Daily" <?= $reportType == 'Daily' ? 'selected' : '' ?>>تقرير يومي</option>
+                                <option value="Monthly" <?= $reportType == 'Monthly' ? 'selected' : '' ?>>تقرير شهري</option>
+                                <option value="Yearly" <?= $reportType == 'Yearly' ? 'selected' : '' ?>>تقرير سنوي</option>
                             </select>
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted mb-1">الفترة الزمنية</label>
+                            <label class="form-label small fw-bold text-muted mb-1 px-2">⏳ الفترة الزمنية</label>
                             <div id="div_daily" class="<?= $reportType != 'Daily' ? 'd-none' : '' ?>">
-                                <input type="date" name="date" class="form-control border-0 bg-light py-2 shadow-none" value="<?= $date ?>" style="border-radius: 10px;">
+                                <input type="date" name="date" class="form-control border-0 bg-light py-2 shadow-sm" value="<?= $date ?>" style="border-radius: 12px;">
                             </div>
                             <div id="div_monthly" class="<?= $reportType != 'Monthly' ? 'd-none' : '' ?>">
-                                <input type="month" name="month" class="form-control border-0 bg-light py-2 shadow-none" value="<?= $month ?>" style="border-radius: 10px;">
+                                <input type="month" name="month" class="form-control border-0 bg-light py-2 shadow-sm" value="<?= $month ?>" style="border-radius: 12px;">
                             </div>
                             <div id="div_yearly" class="<?= $reportType != 'Yearly' ? 'd-none' : '' ?>">
-                                <select name="year" class="form-select border-0 bg-light py-2 shadow-none" style="border-radius: 10px;">
+                                <select name="year" class="form-select border-0 bg-light py-2 shadow-sm" style="border-radius: 12px;">
                                     <?php for ($y = date('Y'); $y >= 2024; $y--): ?>
                                         <option value="<?= $y ?>" <?= $year == $y ? 'selected' : '' ?>><?= $y ?></option>
                                     <?php endfor; ?>
@@ -318,9 +272,9 @@ if (in_array($view, ['Summary', 'Printable', 'Dashboard'])) {
 
                         <?php if ($view === 'Sales'): ?>
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted mb-1">حسب المورد (الرعوي)</label>
-                                <select name="provider_id" class="form-select border-0 bg-light py-2 shadow-none" style="border-radius: 10px;">
-                                    <option value="">الكل</option>
+                                <label class="form-label small fw-bold text-muted mb-1 px-2">👨‍🌾 المورد</label>
+                                <select name="provider_id" class="form-select border-0 bg-light py-2 shadow-sm" style="border-radius: 12px;">
+                                    <option value="">كل الموردين</option>
                                     <?php foreach ($providersWithSales as $p): ?>
                                         <option value="<?= $p['id'] ?>" <?= $provider_id == $p['id'] ? 'selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
                                     <?php endforeach; ?>
@@ -329,8 +283,8 @@ if (in_array($view, ['Summary', 'Printable', 'Dashboard'])) {
                         <?php endif; ?>
 
                         <div class="col-md-2">
-                            <button class="btn btn-update-report w-100 py-2">
-                                <i class="fas fa-sync-alt me-2"></i> تحديث
+                            <button class="btn btn-update-report w-100 py-2 shadow-sm" style="border-radius: 12px;">
+                                <i class="fas fa-sync-alt me-1"></i> تصفية
                             </button>
                         </div>
                     </form>

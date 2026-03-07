@@ -14,26 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        // Check for existing provider with same name (excluding current ID)
-        $stmt = $pdo->prepare("SELECT id FROM providers WHERE name = ? AND id != ?");
-        $stmt->execute([$name, $id]);
-        if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'هذا الاسم موجود مسبقاً لدى مورد آخر']);
-            exit;
-        }
-
-        // Check for existing provider with same phone (excluding current ID)
-        $stmt = $pdo->prepare("SELECT id FROM providers WHERE phone = ? AND id != ?");
-        $stmt->execute([$phone, $id]);
-        if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'رقم الهاتف هذا موجود مسبقاً لدى مورد آخر']);
-            exit;
-        }
-
-        $stmt = $pdo->prepare("UPDATE providers SET name = ?, phone = ? WHERE id = ?");
-        $stmt->execute([$name, $phone, $id]);
+        $repo = new ProviderRepository($pdo);
+        $service = new ProviderService($repo);
+        $service->updateProvider($id, $name, $phone);
         echo json_encode(['success' => true]);
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
 } else {

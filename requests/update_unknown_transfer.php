@@ -1,17 +1,27 @@
 <?php
-require '../config/db.php';
+require_once '../config/db.php';
+require_once '../includes/Autoloader.php';
+
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id             = (int)$_POST['id'];
-    $transfer_date  = $_POST['transfer_date'];
-    $receipt_number = $_POST['receipt_number'];
-    $sender_name    = $_POST['sender_name'];
-    $amount         = (float)$_POST['amount'];
-    $currency       = $_POST['currency'] ?? 'YER';
-    $notes          = $_POST['notes'] ?? '';
+    $commRepo = new CommunicationRepository($pdo);
+    $service = new CommunicationService($commRepo);
 
-    $stmt = $pdo->prepare("UPDATE unknown_transfers SET transfer_date=?, receipt_number=?, sender_name=?, amount=?, currency=?, notes=? WHERE id=?");
-    $stmt->execute([$transfer_date, $receipt_number, $sender_name, $amount, $currency, $notes, $id]);
+    $data = [
+        'id'             => $_POST['id'],
+        'transfer_date'  => $_POST['transfer_date'],
+        'amount'         => $_POST['amount'],
+        'currency'       => $_POST['currency'] ?? 'YER',
+        'receipt_number' => $_POST['receipt_number'],
+        'sender_name'    => $_POST['sender_name'],
+        'notes'          => $_POST['notes'] ?? ''
+    ];
 
-    header("Location: ../unknown_transfers.php?success=1");
+    if ($service->processUnknownTransfer('update', $data)) {
+        header("Location: ../unknown_transfers.php?success=update");
+        exit;
+    }
 }
+header("Location: ../unknown_transfers.php");
+exit;

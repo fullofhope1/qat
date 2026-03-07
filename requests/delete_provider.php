@@ -11,19 +11,10 @@ if (empty($id)) {
 }
 
 try {
-    // Check if provider has any purchases
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM purchases WHERE provider_id = ?");
-    $stmt->execute([$id]);
-    $count = $stmt->fetchColumn();
-
-    if ($count > 0) {
-        echo json_encode(['success' => false, 'message' => 'لا يمكن حذف الراعي لوجود شحنات مسجلة باسمه. يمكنك تعديل الاسم بدلاً من الحذف.']);
-        exit;
-    }
-
-    $stmt = $pdo->prepare("DELETE FROM providers WHERE id = ?");
-    $stmt->execute([$id]);
+    $repo = new ProviderRepository($pdo);
+    $service = new ProviderService($repo);
+    $service->removeProvider($id);
     echo json_encode(['success' => true]);
-} catch (PDOException $e) {
+} catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

@@ -2,39 +2,20 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Fetch Types & Customers
-$types = $pdo->query("SELECT * FROM qat_types WHERE is_deleted = 0")->fetchAll();
-$customers = $pdo->query("SELECT * FROM customers WHERE is_deleted = 0 ORDER BY name ASC")->fetchAll();
+// Fetch Types & Customers via Clean Architecture
+$productRepo = new ProductRepository($pdo);
+$types = $productRepo->getAllActive();
+$customerRepo = new CustomerRepository($pdo);
+$customers = $customerRepo->getAllActive();
 
-// Fetch Today's Stock for Providers
-// Fetch Today's Stock for Providers
-// IMPORTANT: Use received_at to match local Yemen Time synchronized in config/db.php
+// Fetch Today's Stock via Clean Architecture
 $today = date('Y-m-d');
-$stmt = $pdo->prepare("
-    SELECT p.id, p.qat_type_id, p.quantity_kg, prov.name as provider_name 
-    FROM purchases p 
-    JOIN providers prov ON p.provider_id = prov.id 
-    WHERE p.purchase_date = ? 
-    AND p.status = 'Fresh'
-    AND p.is_received = 1
-");
-$stmt->execute([$today]);
-$todaysStock = $stmt->fetchAll();
+$purchaseRepo = new PurchaseRepository($pdo);
+$saleRepo = new SaleRepository($pdo);
+$leftoverRepo = new LeftoverRepository($pdo);
+$saleService = new SaleService($saleRepo, $purchaseRepo, $customerRepo, $leftoverRepo);
 
-
-
-// Fetch Today's Sales to calculate remaining
-$stmt2 = $pdo->prepare("SELECT purchase_id, SUM(weight_kg) as sold_kg FROM sales WHERE sale_date = ? AND purchase_id IS NOT NULL GROUP BY purchase_id");
-$stmt2->execute([$today]);
-$salesMap = $stmt2->fetchAll(PDO::FETCH_KEY_PAIR);
-
-// Attach remaining quantity to stock
-foreach ($todaysStock as &$stock) { // Use reference &
-    $pid = $stock['id'];
-    $sold = isset($salesMap[$pid]) ? $salesMap[$pid] : 0;
-    $stock['remaining_kg'] = round($stock['quantity_kg'] - $sold, 3);
-}
-unset($stock); // Break reference
+$todaysStock = $saleService->getTodaysStock($today);
 
 $jsonStock = json_encode($todaysStock);
 $jsonCustomers = json_encode($customers);
@@ -542,7 +523,11 @@ $jsonCustomers = json_encode($customers);
 
     function filterCust() {
         const term = document.getElementById('cSearch').value.toLowerCase();
-        const filtered = allCustomers.filter(c => c.name.toLowerCase().includes(term) || c.phone.includes(term));
+        const filtered = allCustomers.filter(c => {
+            const nameMatch = c.name && c.name.toLowerCase().includes(term);
+            const phoneMatch = c.phone && String(c.phone).includes(term);
+            return nameMatch || phoneMatch;
+        });
         renderCustList(filtered);
     }
 
@@ -552,12 +537,12 @@ $jsonCustomers = json_encode($customers);
         list.forEach(c => {
             const a = document.createElement('a');
             a.className = 'list-group-item list-group-item-action text-end';
-            a.innerHTML = `<b>${c.name}</b> <small>${c.phone}</small>`;
+            a.style.cursor = 'pointer';
+            a.innerHTML = `<b>${c.name}</b> <small>${c.phone || ''}</small>`;
             a.onclick = () => nextStep(3, {
                 id: c.id,
                 name: c.name
             });
-            style = "cursor:pointer";
             div.appendChild(a);
         });
     }

@@ -2,11 +2,14 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-$custStmt = $pdo->query("SELECT id, name, total_debt FROM customers WHERE is_deleted = 0 ORDER BY name ASC");
-$customers = $custStmt->fetchAll();
+// Initialization via Clean Architecture
+$refundRepo = new RefundRepository($pdo);
+$customerRepo = new CustomerRepository($pdo);
+$service = new RefundService($refundRepo, $customerRepo);
 
-$recStmt = $pdo->query("SELECT r.*, c.name as cust_name FROM refunds r LEFT JOIN customers c ON r.customer_id = c.id ORDER BY r.id DESC LIMIT 50");
-$recentRefunds = $recStmt->fetchAll();
+$data = $service->getRefundDashboardData();
+$customers = $data['customers'];
+$recentRefunds = $data['recent_refunds'];
 
 $custJson = json_encode($customers);
 ?>

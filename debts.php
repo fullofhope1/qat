@@ -2,56 +2,16 @@
 require 'config/db.php';
 include 'includes/header.php';
 
+// Initialization via Clean Architecture
+$debtRepo = new DebtRepository($pdo);
+$service = new DebtService($debtRepo);
+
 // Filter
 $type = $_GET['type'] ?? 'All';
-$today = date('Y-m-d');
-$yesterday = date('Y-m-d', strtotime('-1 day'));
 
-if ($type == 'Daily') {
-    $sql = "SELECT c.id, c.name, c.phone,
-            SUM(s.price - s.paid_amount - COALESCE(s.refund_amount,0)) as due_amount,
-            COUNT(CASE WHEN s.due_date < CURDATE() THEN 1 END) as overdue_count,
-            MIN(s.due_date) as earliest_due
-            FROM sales s
-            JOIN customers c ON s.customer_id = c.id
-            WHERE s.is_paid = 0 AND s.debt_type = 'Daily' AND s.due_date <= CURDATE()
-            GROUP BY c.id ORDER BY due_amount DESC";
-} elseif ($type == 'Upcoming') {
-    $sql = "SELECT c.id, c.name, c.phone,
-            SUM(s.price - s.paid_amount - COALESCE(s.refund_amount,0)) as due_amount,
-            0 as overdue_count, null as earliest_due
-            FROM sales s
-            JOIN customers c ON s.customer_id = c.id
-            WHERE s.is_paid = 0 AND s.debt_type = 'Daily' AND s.due_date > CURDATE()
-            GROUP BY c.id ORDER BY due_amount DESC";
-} elseif ($type == 'Monthly') {
-    $sql = "SELECT c.id, c.name, c.phone,
-            SUM(s.price - s.paid_amount - COALESCE(s.refund_amount,0)) as due_amount,
-            COUNT(CASE WHEN s.due_date < CURDATE() THEN 1 END) as overdue_count,
-            MIN(s.due_date) as earliest_due
-            FROM sales s
-            JOIN customers c ON s.customer_id = c.id
-            WHERE s.is_paid = 0 AND s.debt_type = 'Monthly' AND s.due_date <= CURDATE()
-            GROUP BY c.id ORDER BY due_amount DESC";
-} elseif ($type == 'Yearly') {
-    $sql = "SELECT c.id, c.name, c.phone,
-            SUM(s.price - s.paid_amount - COALESCE(s.refund_amount,0)) as due_amount,
-            COUNT(CASE WHEN s.due_date < CURDATE() THEN 1 END) as overdue_count,
-            MIN(s.due_date) as earliest_due
-            FROM sales s
-            JOIN customers c ON s.customer_id = c.id
-            WHERE s.is_paid = 0 AND s.debt_type = 'Yearly' AND s.due_date <= CURDATE()
-            GROUP BY c.id ORDER BY due_amount DESC";
-} else {
-    $sql = "SELECT *, total_debt as due_amount, 0 as overdue_count, null as earliest_due FROM customers WHERE total_debt > 0 ORDER BY total_debt DESC";
-}
-
-$debtors = $pdo->query($sql)->fetchAll();
-
-$viewTotal = 0;
-foreach ($debtors as $d) {
-    $viewTotal += $d['due_amount'];
-}
+$data = $service->getDebtsData($type);
+$debtors = $data['debtors'];
+$viewTotal = $data['total'];
 
 $type_ar = [
     'All'      => 'الكل',
@@ -60,6 +20,8 @@ $type_ar = [
     'Monthly'  => 'شهري',
     'Yearly'   => 'سنوي'
 ];
+
+$yesterday = date('Y-m-d', strtotime('-1 day'));
 ?>
 
 <style>

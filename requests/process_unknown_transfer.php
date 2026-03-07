@@ -1,24 +1,26 @@
 <?php
-require '../config/db.php';
+require_once '../config/db.php';
+require_once '../includes/Autoloader.php';
+
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $receipt_number = $_POST['receipt_number'] ?? '';
-    $sender_name = $_POST['sender_name'] ?? '';
-    $transfer_date = $_POST['transfer_date'] ?? date('Y-m-d');
-    $amount = $_POST['amount'] ?? 0;
-    $notes = $_POST['notes'] ?? '';
+    $commRepo = new CommunicationRepository($pdo);
+    $service = new CommunicationService($commRepo);
 
-    if (!$sender_name) {
-        die("Error: Sender Name is required.");
-    }
+    $data = [
+        'transfer_date'  => $_POST['transfer_date'],
+        'amount'         => $_POST['amount'],
+        'currency'       => $_POST['currency'] ?? 'YER',
+        'receipt_number' => $_POST['receipt_number'],
+        'sender_name'    => $_POST['sender_name'],
+        'notes'          => $_POST['notes'] ?? ''
+    ];
 
-    try {
-        $stmt = $pdo->prepare("INSERT INTO unknown_transfers (transfer_date, receipt_number, sender_name, amount, notes) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$transfer_date, $receipt_number, $sender_name, $amount, $notes]);
-
+    if ($service->processUnknownTransfer('add', $data)) {
         header("Location: ../unknown_transfers.php?success=1");
         exit;
-    } catch (PDOException $e) {
-        die("Error saving transfer: " . $e->getMessage());
     }
 }
+header("Location: ../unknown_transfers.php");
+exit;

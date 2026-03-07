@@ -1,4 +1,5 @@
 <?php
+require_once 'Autoloader.php';
 // Ensure session is started (auth.php does this, but safely)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -10,10 +11,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
 // Pages allowed without login
 $public_pages = ['index.php'];
 
+// Include auth helpers
+require_once __DIR__ . '/auth.php';
+
 // Redirect if not logged in AND requesting a private page
-if (!isset($_SESSION['user_id']) && !in_array($current_page, $public_pages)) {
-    header("Location: index.php?auth=1");
-    exit;
+if (!in_array($current_page, $public_pages)) {
+    requireLogin();
 }
 
 // Redirect if logged in as 'user' but trying to access Admin pages
@@ -26,8 +29,6 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'user' && !in_array($cu
     }
 }
 
-// (Removed automatic redirect to dashboard to allow admins to view public page)
-
 // For Admins -> Restrict access to some pages if not super_admin
 $admin_allowed_pages = ['sourcing.php', 'providers.php', 'expenses.php', 'admin_report.php', 'settings.php', 'logout.php', 'dashboard.php', 'refunds.php', 'manage_ads.php', 'manage_products.php', 'staff.php', 'staff_details.php'];
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin' && !in_array($current_page, $admin_allowed_pages) && !in_array($current_page, $public_pages)) {
@@ -37,7 +38,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin' && !in_array($curr
 
 // For Super Admins -> Restrict access based on sub_role
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin' && !in_array($current_page, $public_pages)) {
-    require_once __DIR__ . '/auth.php';
     requirePermission();
 }
 
@@ -50,6 +50,15 @@ $home_link = 'index.php';
 if (isset($_SESSION['user_id'])) {
     if ($_SESSION['role'] !== 'user') {
         $home_link = 'dashboard.php';
+
+        // If super_admin and doesn't have dashboard permission, fall back
+        if ($_SESSION['role'] === 'super_admin') {
+            $sub_role = $_SESSION['sub_role'] ?? 'full';
+            $no_dash = ['reports', 'sales_debts', 'seller', 'accountant', 'partner'];
+            if (in_array($sub_role, $no_dash)) {
+                $home_link = 'settings.php'; // Or just index.php
+            }
+        }
     }
 }
 
@@ -76,8 +85,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     <title>القادري و ماجد - لأجود أنواع القات</title>
     <!-- Google Fonts: Cairo & Tajawal -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 RTL -->
+    <!-- Bootstrap 5 RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Bootstrap 5 JS (loaded in head to ensure it's ready before any page scripts) -->
+    <script src="/qat/public/js/bootstrap.bundle.min.js"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Animate.css -->
@@ -192,7 +203,9 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         $sub_role = $_SESSION['sub_role'] ?? 'full';
                         $is_full = ($sub_role === 'full');
                         ?>
-                        <li class="nav-item"><a class="nav-link <?= navActive($home_link, $current_page) ?>" href="<?= $home_link ?>"><i class="fas fa-home me-1"></i> الرئيسية</a></li>
+                        <?php if ($is_full || $sub_role === 'receiving' || $sub_role === 'verifier'): ?>
+                            <li class="nav-item"><a class="nav-link <?= navActive($home_link, $current_page) ?>" href="<?= $home_link ?>"><i class="fas fa-home me-1"></i> الرئيسية</a></li>
+                        <?php endif; ?>
 
                         <?php if ($is_full || $sub_role === 'sales_debts' || $sub_role === 'seller'): ?>
                             <li class="nav-item"><a class="nav-link <?= navActive('sales.php', $current_page) ?>" href="sales.php"><i class="fas fa-shopping-cart me-1"></i> المبيعات</a></li>
@@ -202,18 +215,17 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                             <li class="nav-item"><a class="nav-link <?= navActive('purchases.php', $current_page) ?>" href="purchases.php"><i class="fas fa-truck me-1"></i> استلام المشتريات</a></li>
                         <?php endif; ?>
 
-                        <?php if ($is_full || $sub_role === 'verifier'): ?>
-                            <li class="nav-item"><a class="nav-link <?= navActive('sourcing.php', $current_page) ?>" href="sourcing.php"><i class="fas fa-truck-loading me-1"></i> التوريد</a></li>
-                            <li class="nav-item"><a class="nav-link <?= navActive('providers.php', $current_page) ?>" href="providers.php"><i class="fas fa-users-cog me-1"></i> الرعية</a></li>
-                        <?php endif; ?>
 
                         <?php if ($is_full || $sub_role === 'sales_debts' || $sub_role === 'seller'): ?>
                             <li class="nav-item"><a class="nav-link <?= navActive('customers.php', $current_page) ?>" href="customers.php"><i class="fas fa-users me-1"></i> العملاء</a></li>
                             <li class="nav-item"><a class="nav-link <?= navActive('debts.php', $current_page) ?>" href="debts.php"><i class="fas fa-file-invoice-dollar me-1"></i> الديون</a></li>
                         <?php endif; ?>
 
-                        <?php if ($is_full || $sub_role === 'seller'): ?>
+                        <?php if ($is_full): ?>
                             <li class="nav-item"><a class="nav-link <?= navActive('refunds.php', $current_page) ?>" href="refunds.php"><i class="fas fa-hand-holding-usd me-1"></i> التعويضات</a></li>
+                        <?php endif; ?>
+
+                        <?php if ($is_full || $sub_role === 'seller'): ?>
                             <li class="nav-item"><a class="nav-link <?= navActive('staff.php', $current_page) ?>" href="staff.php"><i class="fas fa-user-tie me-1"></i> الموظفين</a></li>
                         <?php endif; ?>
 
@@ -221,7 +233,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                             <li class="nav-item"><a class="nav-link <?= navActive('expenses.php', $current_page) ?>" href="expenses.php"><i class="fas fa-wallet me-1"></i> المصاريف</a></li>
                         <?php endif; ?>
 
-                        <?php if ($is_full || $sub_role === 'reports' || $sub_role === 'accountant'): ?>
+                        <?php if ($is_full || $sub_role === 'reports'): ?>
                             <li class="nav-item"><a class="nav-link <?= navActive('unknown_transfers.php', $current_page) ?>" href="unknown_transfers.php"><i class="fas fa-question-circle me-1"></i> تحويلات مجهولة</a></li>
                         <?php endif; ?>
 

@@ -8,35 +8,13 @@
 </div>
 
 <?php
-// 1. SALES BREAKDOWN
-$stmt = $pdo->prepare("SELECT
-SUM(CASE WHEN payment_method = 'Cash' THEN price ELSE 0 END) as cash_sales,
-SUM(CASE WHEN payment_method = 'Debt' THEN price ELSE 0 END) as debt_sales,
-SUM(CASE WHEN payment_method NOT IN ('Cash', 'Debt') THEN price ELSE 0 END) as transfer_sales,
-SUM(CASE WHEN qat_status = 'Momsi' THEN price ELSE 0 END) as momsi_sales,
-COUNT(*) as total_invoices
-FROM sales $whereSQL_Sales");
-$stmt->execute($params);
-$salesSummary = $stmt->fetch();
+// includes/reports/view_summary.php
 
-// 2. PAYMENTS COLLECTED (Inflow from previous debts)
-// Note: We need a where clause for payments using the same report template logic
-if ($reportType === 'Monthly') $whereSQL_Pay = "WHERE DATE_FORMAT(payment_date, '%Y-%m') = ?";
-elseif ($reportType === 'Yearly') $whereSQL_Pay = "WHERE YEAR(payment_date) = ?";
-else $whereSQL_Pay = "WHERE payment_date = ?";
+$breakdowns = $service->getSummaryBreakdowns($reportType, $date, $month, $year);
+$salesSummary = $breakdowns['sales'];
+$leftoversSummary = $breakdowns['leftovers'];
+$depositsRaw = $breakdowns['deposits'];
 
-$stmt = $pdo->prepare("SELECT SUM(amount) FROM payments $whereSQL_Pay");
-$stmt->execute($params);
-$collectedPayments = $stmt->fetchColumn() ?: 0;
-
-// 3. DEPOSITS (Outflow to currency exchanges/owners)
-if ($reportType === 'Monthly') $whereSQL_Dep = "WHERE DATE_FORMAT(deposit_date, '%Y-%m') = ?";
-elseif ($reportType === 'Yearly') $whereSQL_Dep = "WHERE YEAR(deposit_date) = ?";
-else $whereSQL_Dep = "WHERE deposit_date = ?";
-
-$stmt = $pdo->prepare("SELECT currency, SUM(amount) as total FROM qat_deposits $whereSQL_Dep GROUP BY currency");
-$stmt->execute($params);
-$depositsRaw = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 $depositsYER = $depositsRaw['YER'] ?? 0;
 $depositsSAR = $depositsRaw['SAR'] ?? 0;
 $depositsUSD = $depositsRaw['USD'] ?? 0;
@@ -49,62 +27,91 @@ foreach ($listRefunds as $r) {
     else $debtRefunds += $r['amount'];
 }
 
-// 5. LEFTOVERS BREAKDOWN (for the period)
-if ($reportType === 'Monthly') $whereSQL_Lef = "WHERE DATE_FORMAT(source_date, '%Y-%m') = ?";
-elseif ($reportType === 'Yearly') $whereSQL_Lef = "WHERE YEAR(source_date) = ?";
-else $whereSQL_Lef = "WHERE source_date = ?";
-
-$stmt = $pdo->prepare("SELECT
-    SUM(CASE WHEN status IN ('Dropped') THEN weight_kg ELSE 0 END) as manual_dropped_kg,
-    SUM(CASE WHEN status = 'Auto_Dropped' THEN weight_kg ELSE 0 END) as auto_dropped_kg,
-    SUM(CASE WHEN status = 'Transferred_Next_Day' THEN weight_kg ELSE 0 END) as manual_momsi_kg,
-    SUM(CASE WHEN status = 'Auto_Momsi' THEN weight_kg ELSE 0 END) as auto_momsi_kg
-    FROM leftovers $whereSQL_Lef");
-$stmt->execute($params);
-$leftoversSummary = $stmt->fetch();
-$totalDroppedKg  = ($leftoversSummary['manual_dropped_kg'] ?? 0) + ($leftoversSummary['auto_dropped_kg'] ?? 0);
-$totalMomsiKg    = ($leftoversSummary['manual_momsi_kg'] ?? 0) + ($leftoversSummary['auto_momsi_kg'] ?? 0);
-
-// 6. FINAL TOTALS
 $totalInflow = $salesSummary['cash_sales'] + $collectedPayments;
 $totalOutflow = $totalExpenses + $cashRefunds + $depositsYER;
 $remainingCash = $totalInflow - $totalOutflow;
 
+$totalDroppedKg  = ($leftoversSummary['manual_dropped_kg'] ?? 0) + ($leftoversSummary['auto_dropped_kg'] ?? 0);
+$totalMomsiKg    = ($leftoversSummary['manual_momsi_kg'] ?? 0) + ($leftoversSummary['auto_momsi_kg'] ?? 0);
+?>
+
 ?>
 
 <style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes pulse-soft {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.02);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
     .summary-card {
-        border-radius: 20px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border: none !important;
+        border-radius: 24px;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        background: rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(15px);
+        animation: fadeInUp 0.6s ease-out both;
     }
 
     .summary-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-8px);
+        box-shadow: var(--royal-shadow) !important;
+        background: #fff !important;
     }
 
     .icon-box {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.8rem;
         margin-bottom: 1.5rem;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
     }
 
     .text-value {
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-size: 2.2rem;
+        font-weight: 900;
         margin-bottom: 0.25rem;
+        letter-spacing: -1px;
     }
 
     .progress-micro {
-        height: 4px;
-        border-radius: 2px;
-        margin: 1rem 0;
+        height: 6px;
+        border-radius: 10px;
+        margin: 1.25rem 0;
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .badge-premium {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 </style>
 
@@ -294,19 +301,34 @@ $remainingCash = $totalInflow - $totalOutflow;
     </div>
 </div>
 
-<!-- Final Custody Result -->
+<!-- Final Custody Result (The Performance Badge) -->
 <div class="row">
     <div class="col-12">
-        <div class="card border-0 shadow-lg <?= $remainingCash >= 0 ? 'bg-gradient-success' : 'bg-gradient-danger' ?> text-white p-4"
-            style="border-radius: 20px; background: <?= $remainingCash >= 0 ? 'linear-gradient(135deg, #1D976C 0%, #93F9B9 100%)' : 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)' ?>;">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-                <div class="mb-3 mb-md-0">
-                    <h3 class="mb-1 fw-bold"><i class="fas fa-vault me-2"></i> الرصيد المتبقي في العهدة (الكاش)</h3>
-                    <p class="mb-0 opacity-75">المبلغ المفترض تواجده حالياً مع المحاسب (بعد خصم المصاريف والإيداعات)</p>
+        <div class="card border-0 shadow-lg text-white p-5 overflow-hidden"
+            style="border-radius: 30px; background: <?= $remainingCash >= 0 ? 'var(--primary-gradient)' : 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)' ?>; animation: fadeInUp 1s ease-out; position: relative;">
+
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+
+            <div class="row align-items-center position-relative">
+                <div class="col-md-7 mb-4 mb-md-0">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-white bg-opacity-20 p-3 rounded-4 me-3">
+                            <i class="fas fa-vault fs-2"></i>
+                        </div>
+                        <h2 class="mb-0 fw-bold">العهدة النقدية النهائية</h2>
+                    </div>
+                    <p class="mb-0 opacity-75 fs-5">المستلم الفعلي المفترض تواجده حالياً مع المحاسب (بعد تصفية كافة العمليات)</p>
                 </div>
-                <div class="text-center text-md-end">
-                    <div class="display-4 fw-bold mb-0"><?= number_format($remainingCash) ?></div>
-                    <div class="h5 fw-normal opacity-75 mb-0">ريال يمني</div>
+                <div class="col-md-5 text-center text-md-end">
+                    <div class="display-3 fw-black mb-0" style="text-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+                        <?= number_format($remainingCash) ?>
+                    </div>
+                    <div class="h4 fw-light opacity-75 mb-0">ريال يمني</div>
+                    <?php if ($remainingCash < 0): ?>
+                        <div class="badge bg-white text-danger mt-3 badge-premium px-3 py-2 animation-pulse">عجز مالي</div>
+                    <?php else: ?>
+                        <div class="badge bg-white text-success mt-3 badge-premium px-3 py-2">رصيد إيجابي</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

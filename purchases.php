@@ -3,33 +3,18 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Fetch Types for Manual Purchase if needed
-$types = $pdo->query("SELECT * FROM qat_types WHERE is_deleted = 0")->fetchAll();
+// Fetch Types via Clean Architecture
+$productRepo = new ProductRepository($pdo);
+$types = $productRepo->getAllActive();
 
-// Fetch Pending Shipments (Sent by Field Admin, Not yet Received)
-$stmt = $pdo->prepare("
-    SELECT p.*, t.name as type_name, prov.name as provider_name 
-    FROM purchases p 
-    LEFT JOIN qat_types t ON p.qat_type_id = t.id 
-    LEFT JOIN providers prov ON p.provider_id = prov.id 
-    WHERE p.is_received = 0 
-    ORDER BY p.created_at ASC
-");
-$stmt->execute();
-$pending_shipments = $stmt->fetchAll();
+// Fetch Shipments via Clean Architecture
+$purchaseRepo = new PurchaseRepository($pdo);
+$purchaseService = new PurchaseService($purchaseRepo, $productRepo);
 
-// Fetch Today's Received Purchases
+$pending_shipments = $purchaseService->getPending();
+
 $today = date('Y-m-d');
-$stmt = $pdo->prepare("
-    SELECT p.*, t.name as type_name, prov.name as provider_name 
-    FROM purchases p 
-    LEFT JOIN qat_types t ON p.qat_type_id = t.id 
-    LEFT JOIN providers prov ON p.provider_id = prov.id 
-    WHERE p.is_received = 1 AND DATE(p.received_at) = ? 
-    ORDER BY p.received_at DESC
-");
-$stmt->execute([$today]);
-$received_purchases = $stmt->fetchAll();
+$received_purchases = $purchaseService->getReceivedToday($today);
 ?>
 
 <div class="row">

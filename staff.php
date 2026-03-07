@@ -2,22 +2,13 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// 1. Fetch Staff with their Total Withdrawals (Expenses where category='Staff')
-$user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("
-    SELECT s.*, 
-    (SELECT SUM(amount) FROM expenses WHERE staff_id = s.id AND category = 'Staff') as total_withdrawn 
-    FROM staff s 
-    WHERE s.created_by = ?
-    ORDER BY s.name ASC
-");
-$stmt->execute([$user_id]);
-$staffMembers = $stmt->fetchAll();
+// Initialization via Clean Architecture
+$staffRepo = new StaffRepository($pdo);
+$service = new StaffService($staffRepo);
 
-// 2. Total Withdrawals for All
-$stmtTotal = $pdo->prepare("SELECT SUM(amount) FROM expenses WHERE category = 'Staff' AND created_by = ?");
-$stmtTotal->execute([$user_id]);
-$allWithdrawals = $stmtTotal->fetchColumn() ?: 0;
+$user_id = $_SESSION['user_id'];
+$staffMembers = $service->getStaffList($user_id);
+$allWithdrawals = $service->getTotalWithdrawals($user_id);
 ?>
 
 <div class="row mb-4">

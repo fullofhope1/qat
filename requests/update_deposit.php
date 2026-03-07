@@ -1,15 +1,29 @@
 <?php
 require '../config/db.php';
 
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    die("Unauthorized");
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = (int)$_POST['id'];
-    $recipient = $_POST['recipient'];
-    $currency = $_POST['currency'];
-    $amount = (float)$_POST['amount'];
-    $notes = $_POST['notes'] ?? '';
+    try {
+        $expenseRepo = new ExpenseRepository($pdo);
+        $depositRepo = new DepositRepository($pdo);
+        $staffRepo = new StaffRepository($pdo);
+        $service = new ExpenseService($expenseRepo, $depositRepo, $staffRepo);
 
-    $stmt = $pdo->prepare("UPDATE qat_deposits SET recipient = ?, currency = ?, amount = ?, notes = ? WHERE id = ?");
-    $stmt->execute([$recipient, $currency, $amount, $notes, $id]);
+        $id = (int)$_POST['id'];
+        $data = [
+            'recipient' => $_POST['recipient'],
+            'currency' => $_POST['currency'],
+            'amount' => (float)$_POST['amount'],
+            'notes' => $_POST['notes'] ?? ''
+        ];
 
-    header("Location: ../expenses.php?tab=deposit");
+        $service->updateDeposit($id, $data);
+        header("Location: ../expenses.php?tab=deposit");
+    } catch (Exception $e) {
+        header("Location: ../expenses.php?error=" . urlencode($e->getMessage()));
+    }
 }

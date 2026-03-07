@@ -1,5 +1,6 @@
 <?php
 require '../config/db.php';
+require_once '../includes/Autoloader.php';
 
 header('Content-Type: application/json');
 
@@ -8,30 +9,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = $_POST['phone'] ?? '';
 
     try {
-        // Check for existing customer with same name
-        $stmt = $pdo->prepare("SELECT id FROM customers WHERE name = ? AND is_deleted = 0");
-        $stmt->execute([$name]);
-        if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'error' => 'الاسم موجود مسبقاً (This name already exists)']);
-            exit;
-        }
+        $repo = new CustomerRepository($pdo);
+        $service = new CustomerService($repo);
 
-        // Check for existing customer with same phone (if provided)
-        if (!empty($phone)) {
-            $stmt = $pdo->prepare("SELECT id FROM customers WHERE phone = ? AND is_deleted = 0");
-            $stmt->execute([$phone]);
-            if ($stmt->fetch()) {
-                echo json_encode(['success' => false, 'error' => 'رقم الهاتف موجود مسبقاً (This phone number already exists)']);
-                exit;
-            }
-        }
-
-        $stmt = $pdo->prepare("INSERT INTO customers (name, phone) VALUES (?, ?)");
-        $stmt->execute([$name, $phone]);
-        $id = $pdo->lastInsertId();
+        $id = $service->addCustomer($name, $phone);
 
         echo json_encode(['success' => true, 'id' => $id]);
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
 }

@@ -1,6 +1,7 @@
 <?php
 // requests/close_day.php
 require_once '../config/db.php';
+require_once '../includes/Autoloader.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $today = $_POST['date'] ?? date('Y-m-d');

@@ -14,22 +14,28 @@ foreach ($types as $t) {
     $stmtBuy->execute([$t['id'], $today]);
     $bought = $stmtBuy->fetchColumn() ?: 0;
 
-    // 2. Total Sold from these specific purchases
-    // We get the purchase IDs for that day and type
-    $stmtPIDs = $pdo->prepare("SELECT id FROM purchases WHERE qat_type_id = ? AND purchase_date = ?");
+    // 2. Total Sold from these specific active purchases
+    $stmtPIDs = $pdo->prepare("SELECT id FROM purchases WHERE qat_type_id = ? AND purchase_date = ? AND status != 'Closed'");
     $stmtPIDs->execute([$t['id'], $today]);
     $pids = $stmtPIDs->fetchAll(PDO::FETCH_COLUMN);
 
     $sold = 0;
+    $managed = 0;
     if (!empty($pids)) {
         $placeholders = implode(',', array_fill(0, count($pids), '?'));
+        // 2. Total Sold
         $stmtSell = $pdo->prepare("SELECT SUM(weight_kg) FROM sales WHERE purchase_id IN ($placeholders)");
         $stmtSell->execute($pids);
         $sold = $stmtSell->fetchColumn() ?: 0;
+
+        // 3. Managed weight (manual leftovers)
+        $stmtManaged = $pdo->prepare("SELECT SUM(weight_kg) FROM leftovers WHERE purchase_id IN ($placeholders) AND status IN ('Dropped', 'Transferred_Next_Day')");
+        $stmtManaged->execute($pids);
+        $managed = $stmtManaged->fetchColumn() ?: 0;
     }
 
-    $rem = $bought - $sold;
-    if ($rem < 0) {
+    $rem = $bought - $sold - $managed;
+    if ($rem < 0.001) {
         $rem = 0;
     }
 
@@ -37,12 +43,13 @@ foreach ($types as $t) {
         'name' => $t['name'],
         'bought' => $bought,
         'sold' => $sold,
+        'managed' => $managed,
         'surplus' => $rem
     ];
 }
 
-// 3. Count Unpaid Daily Debts for the selected date
-$stmtDebt = $pdo->prepare("SELECT COUNT(*) as count, SUM(price) as total FROM sales WHERE sale_date = ? AND payment_method = 'Debt' AND debt_type = 'Daily' AND is_paid = 0");
+// 3. Count Unpaid Daily Debts that will be rolled over (due_date <= today)
+$stmtDebt = $pdo->prepare("SELECT COUNT(*) as count, SUM(price - paid_amount - COALESCE(refund_amount,0)) as total FROM sales WHERE due_date <= ? AND payment_method = 'Debt' AND debt_type = 'Daily' AND is_paid = 0");
 $stmtDebt->execute([$today]);
 $debtStats = $stmtDebt->fetch();
 $totalLeftoversCount = 0;

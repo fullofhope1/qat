@@ -2,25 +2,24 @@
 require_once 'config/db.php';
 include_once 'includes/header.php';
 
+// Initialization via Clean Architecture
+$staffRepo = new StaffRepository($pdo);
+$expenseRepo = new ExpenseRepository($pdo);
+$depositRepo = new DepositRepository($pdo);
+
 // Fetch Staff with current withdrawals
 $user_id = $_SESSION['user_id'];
-$staff = $pdo->prepare("SELECT s.*, (SELECT SUM(amount) FROM expenses WHERE staff_id = s.id AND category = 'Staff') as current_withdrawals FROM staff s WHERE s.created_by = ?");
-$staff->execute([$user_id]);
-$staff = $staff->fetchAll();
+$staff = $staffRepo->getWithCurrentWithdrawals($user_id);
 $jsonStaff = json_encode($staff);
 
 // Fetch Today's Data
 $today = date('Y-m-d');
 
 // Expenses
-$stmt = $pdo->prepare("SELECT e.*, s.name as staff_name FROM expenses e LEFT JOIN staff s ON e.staff_id = s.id WHERE expense_date = ? AND e.created_by = ? ORDER BY id DESC");
-$stmt->execute([$today, $user_id]);
-$expenses = $stmt->fetchAll();
+$expenses = $expenseRepo->getTodayExpenses($today, $user_id);
 
 // Deposits
-$stmtDep = $pdo->prepare("SELECT * FROM qat_deposits WHERE deposit_date = ? AND created_by = ? ORDER BY id DESC");
-$stmtDep->execute([$today, $user_id]);
-$deposits = $stmtDep->fetchAll();
+$deposits = $depositRepo->getTodayDeposits($today, $user_id);
 
 // Restored Categories list
 $categories = ['إيجار', 'كهرباء', 'ماء', 'تغذية', 'نقل', 'أخرى'];

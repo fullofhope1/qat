@@ -2,22 +2,12 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Fetch Products (Qat Types) - Only those with ACTIVE (non-closed) shipments.
-// When the day is closed (manually or automatically), purchase status becomes 'Closed',
-// which will automatically clear this list for a fresh start the next day.
-$stmt = $pdo->query("
-    SELECT qt.*, 
-           SUM(p.received_weight_grams) as total_received_grams,
-           MAX(p.created_at) as last_shipment_date,
-           MAX(p.purchase_date) as active_date
-    FROM qat_types qt
-    JOIN purchases p ON qt.id = p.qat_type_id
-    WHERE qt.is_deleted = 0
-      AND p.status IN ('Fresh', 'Momsi')
-    GROUP BY qt.id
-    ORDER BY qt.name ASC
-");
-$products = $stmt->fetchAll();
+// Initialization via Clean Architecture
+$productRepo = new ProductRepository($pdo);
+$adRepo = new AdRepository($pdo);
+$service = new InventoryService($productRepo, $adRepo);
+
+$products = $service->getManageProductsData();
 ?>
 
 <div class="row">

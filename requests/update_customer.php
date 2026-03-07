@@ -1,5 +1,6 @@
 <?php
 require '../config/db.php';
+require_once '../includes/Autoloader.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../customers.php');
@@ -7,25 +8,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $id = (int)$_POST['id'];
-$name = $_POST['name'];
-$phone = $_POST['phone'];
+$name = trim($_POST['name']);
+$phone = trim($_POST['phone']);
 $debt_limit = $_POST['debt_limit'];
 
-// Basic validation
 if ($name === '') {
-    // Name is required
     header('Location: ../edit_customer.php?id=' . $id . '&error=NameRequired');
     exit;
 }
 
-// Convert empty debt_limit to NULL
 if ($debt_limit === '' || $debt_limit === 'No Limit') {
     $debt_limit = null;
 }
 
-$sql = "UPDATE customers SET name = ?, phone = ?, debt_limit = ? WHERE id = ?";
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$name, $phone, $debt_limit, $id]);
+try {
+    $repo = new CustomerRepository($pdo);
+    $service = new CustomerService($repo);
+    $service->updateCustomer($id, $name, $phone, $debt_limit);
 
-header('Location: ../customers.php');
+    header('Location: ../customers.php');
+} catch (Exception $e) {
+    header('Location: ../edit_customer.php?id=' . $id . '&error=' . urlencode($e->getMessage()));
+}
 exit;

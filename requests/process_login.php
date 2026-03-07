@@ -1,17 +1,21 @@
 <?php
-session_start();
 require_once '../config/db.php';
+require_once '../includes/Autoloader.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
+    $userRepo = new UserRepository($pdo);
+    $service = new UserService($userRepo);
 
-    if ($user && password_verify($password, $user['password'])) {
-        // Success
+    $user = $service->login($username, $password);
+
+    if ($user) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
@@ -20,13 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user['role'] === 'user') {
             header("Location: ../index.php");
         } else {
-            // Both admin and super_admin go to internal dashboard
-            header("Location: ../dashboard.php");
+            require_once '../includes/auth.php';
+            $home = getHomeLink();
+            header("Location: ../" . $home);
         }
         exit;
     } else {
-        // Fail
         header("Location: ../index.php?error=1");
         exit;
     }
 }
+header("Location: ../index.php");
+exit;

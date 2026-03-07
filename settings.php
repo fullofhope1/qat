@@ -35,15 +35,15 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
 
         <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-dark p-0 border-0">
-                <ul class="nav nav-pills nav-fill" id="settingsTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active rounded-0 text-white py-3 fw-bold" id="account-tab" data-bs-toggle="pill" data-bs-target="#account" type="button" role="tab" style="background-color: transparent;">
+                <ul class="nav nav-pills nav-fill" id="settingsTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active rounded-0 text-white py-3 fw-bold" id="account-tab" onclick="switchTab('account')" type="button">
                             <i class="fas fa-user-shield me-2"></i> إعدادات الحساب
                         </button>
                     </li>
                     <?php if ($is_full_admin): ?>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link rounded-0 text-white py-3 fw-bold" id="users-tab" data-bs-toggle="pill" data-bs-target="#users" type="button" role="tab" style="background-color: transparent;">
+                        <li class="nav-item">
+                            <button class="nav-link rounded-0 text-white py-3 fw-bold" id="users-tab" onclick="switchTab('users')" type="button">
                                 <i class="fas fa-users-cog me-2"></i> إدارة المستخدمين
                             </button>
                         </li>
@@ -55,7 +55,7 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
                 <div class="tab-content" id="settingsTabsContent">
 
                     <!-- Tab 1: Account Settings -->
-                    <div class="tab-pane fade show active" id="account" role="tabpanel">
+                    <div id="account" class="tab-pane-custom" style="display:block;">
                         <div class="row justify-content-center">
                             <div class="col-md-10">
 
@@ -66,18 +66,18 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
                                             <input type="hidden" name="action" value="password">
 
                                             <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">كلمة المرور الحالية</label>
-                                                <input type="password" name="current_password" class="form-control rounded-pill bg-light" required>
+                                                <label for="current_password" class="form-label text-secondary small fw-bold">كلمة المرور الحالية</label>
+                                                <input type="password" id="current_password" name="current_password" class="form-control rounded-pill bg-light" required autocomplete="new-password" value="">
                                             </div>
 
                                             <div class="row g-3 mb-4">
                                                 <div class="col-md-6">
-                                                    <label class="form-label text-secondary small fw-bold">كلمة المرور الجديدة</label>
-                                                    <input type="password" name="new_password" class="form-control rounded-pill bg-light" required minlength="4">
+                                                    <label for="new_password" class="form-label text-secondary small fw-bold">كلمة المرور الجديدة</label>
+                                                    <input type="password" id="new_password" name="new_password" class="form-control rounded-pill bg-light" required minlength="4" autocomplete="new-password" value="">
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <label class="form-label text-secondary small fw-bold">تأكيد كلمة المرور الجديدة</label>
-                                                    <input type="password" name="confirm_password" class="form-control rounded-pill bg-light" required minlength="4">
+                                                    <label for="confirm_password" class="form-label text-secondary small fw-bold">تأكيد كلمة المرور الجديدة</label>
+                                                    <input type="password" id="confirm_password" name="confirm_password" class="form-control rounded-pill bg-light" required minlength="4" autocomplete="new-password" value="">
                                                 </div>
                                             </div>
 
@@ -94,18 +94,18 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
 
                                             <div class="row g-3 mb-3">
                                                 <div class="col-md-6">
-                                                    <label class="form-label text-secondary small fw-bold">اسم المستخدم الحالي</label>
-                                                    <input type="text" class="form-control rounded-pill bg-light text-muted" value="<?= htmlspecialchars($_SESSION['username'] ?? '') ?>" disabled>
+                                                    <label for="current_username_display" class="form-label text-secondary small fw-bold">اسم المستخدم الحالي</label>
+                                                    <input type="text" id="current_username_display" class="form-control rounded-pill bg-light text-muted" value="<?= htmlspecialchars($_SESSION['username'] ?? '') ?>" disabled>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <label class="form-label text-secondary small fw-bold">اسم المستخدم الجديد</label>
-                                                    <input type="text" name="new_username" class="form-control rounded-pill bg-light" required minlength="3">
+                                                    <label for="new_username" class="form-label text-secondary small fw-bold">اسم المستخدم الجديد</label>
+                                                    <input type="text" id="new_username" name="new_username" class="form-control rounded-pill bg-light" required minlength="3">
                                                 </div>
                                             </div>
 
                                             <div class="mb-4">
-                                                <label class="form-label text-secondary small fw-bold">تأكيد بكلمة المرور</label>
-                                                <input type="password" name="confirm_password_username" class="form-control rounded-pill bg-light" required>
+                                                <label for="confirm_password_username" class="form-label text-secondary small fw-bold">تأكيد بكلمة المرور</label>
+                                                <input type="password" id="confirm_password_username" name="confirm_password_username" class="form-control rounded-pill bg-light" required autocomplete="new-password" value="">
                                             </div>
 
                                             <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">تغيير الاسم <i class="fas fa-user-edit ms-1"></i></button>
@@ -119,9 +119,15 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
 
                     <!-- Tab 2: User Management (Super Admin Only) -->
                     <?php if ($is_full_admin): ?>
-                        <div class="tab-pane fade" id="users" role="tabpanel">
-                            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                        <div id="users" class="tab-pane-custom" style="display:none;">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 border-bottom pb-3 gap-3">
                                 <h4 class="text-dark fw-bold mb-0"><i class="fas fa-users text-primary me-2"></i> قائمة مستخدمي النظام</h4>
+                                <div class="flex-grow-1 mx-md-4">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i class="fas fa-search text-muted"></i></span>
+                                        <input type="text" id="userSearchInput" class="form-control border-start-0 rounded-end-pill" placeholder="بحث عن مستخدم (الاسم، الجوال، اليوزر)...">
+                                    </div>
+                                </div>
                                 <button class="btn btn-success rounded-pill fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
                                     <i class="fas fa-user-plus me-1"></i> إضافة مستخدم جديد
                                 </button>
@@ -148,97 +154,6 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
                             </div>
                         </div>
 
-                        <!-- Add User Modal -->
-                        <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content border-0 rounded-4 shadow">
-                                    <form id="addUserForm">
-                                        <div class="modal-header bg-dark text-white border-0">
-                                            <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2 text-success"></i> إضافة مستخدم جديد</h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body p-4 bg-light">
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">الاسم الكامل</label>
-                                                <input type="text" name="display_name" class="form-control rounded-pill bg-white" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">اسم المستخدم (للدخول)</label>
-                                                <input type="text" name="username" class="form-control rounded-pill bg-white" required minlength="3">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">رقم الهاتف</label>
-                                                <input type="text" name="phone" class="form-control rounded-pill bg-white">
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">الرتبة (الصلاحية الرئيسية)</label>
-                                                <select name="role_group" id="userRoleSelect" class="form-select rounded-pill bg-white" required>
-                                                    <option value="" disabled selected>اختر الصلاحية</option>
-                                                    <option value="super_admin_full">مدير عام (تحكم كامل)</option>
-                                                    <option value="super_admin_verifier">مستلم / مراجع (شراء الموردين وجرد البضاعة)</option>
-                                                    <option value="super_admin_seller">بائع (مبيعات، ديون، مرتجعات، موظفين...)</option>
-                                                    <option value="super_admin_accountant">محاسب (سندات الواتساب والتقارير)</option>
-                                                    <option value="super_admin_partner">شريك (تقارير فقط)</option>
-                                                </select>
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">كلمة المرور</label>
-                                                <input type="password" name="password" class="form-control rounded-pill bg-white" required minlength="4">
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer border-0 p-3 bg-light justify-content-between">
-                                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
-                                            <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">حفظ المستخدم <i class="fas fa-check ms-1"></i></button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Edit User Modal -->
-                        <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content border-0 rounded-4 shadow">
-                                    <form id="editUserForm">
-                                        <input type="hidden" name="user_id" id="editUserId">
-                                        <div class="modal-header bg-dark text-white border-0">
-                                            <h5 class="modal-title fw-bold"><i class="fas fa-user-edit me-2 text-warning"></i> تعديل مستخدم</h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body p-4 bg-light">
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">الاسم الكامل</label>
-                                                <input type="text" name="display_name" id="editDisplayName" class="form-control rounded-pill bg-white" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">رقم الهاتف</label>
-                                                <input type="text" name="phone" id="editPhone" class="form-control rounded-pill bg-white">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">الرتبة (الصلاحية الرئيسية)</label>
-                                                <select name="role_group" id="editRoleSelect" class="form-select rounded-pill bg-white" required>
-                                                    <option value="super_admin_full">مدير عام (تحكم كامل)</option>
-                                                    <option value="super_admin_verifier">مستلم / مراجع (شراء الموردين وجرد البضاعة)</option>
-                                                    <option value="super_admin_seller">بائع (مبيعات، ديون، مرتجعات، موظفين...)</option>
-                                                    <option value="super_admin_accountant">محاسب (سندات الواتساب والتقارير)</option>
-                                                    <option value="super_admin_partner">شريك (تقارير فقط)</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label text-secondary small fw-bold">تغيير كلمة المرور (اختياري)</label>
-                                                <input type="password" name="password" class="form-control rounded-pill bg-white" placeholder="اتركه فارغاً إذا لم ترد التغيير" minlength="4">
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer border-0 p-3 bg-light justify-content-between">
-                                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
-                                            <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold">تحديث <i class="fas fa-sync-alt ms-1"></i></button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     <?php endif; ?>
 
                 </div>
@@ -246,6 +161,104 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
         </div>
     </div>
 </div>
+
+<?php if ($is_full_admin): ?>
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <form id="addUserForm">
+                    <div class="modal-header bg-dark text-white border-0">
+                        <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2 text-success"></i> إضافة مستخدم جديد</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <div class="mb-3">
+                            <label for="add_display_name" class="form-label text-secondary small fw-bold">الاسم الكامل</label>
+                            <input type="text" id="add_display_name" name="display_name" class="form-control rounded-pill bg-white" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_username" class="form-label text-secondary small fw-bold">اسم المستخدم (للدخول)</label>
+                            <input type="text" id="add_username" name="username" class="form-control rounded-pill bg-white" required minlength="3">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_phone" class="form-label text-secondary small fw-bold">رقم الهاتف</label>
+                            <input type="text" id="add_phone" name="phone" class="form-control rounded-pill bg-white">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="userRoleSelect" class="form-label text-secondary small fw-bold">الرتبة (الصلاحية الرئيسية)</label>
+                            <select name="role_group" id="userRoleSelect" class="form-select rounded-pill bg-white" required>
+                                <option value="" disabled selected>اختر الصلاحية</option>
+                                <option value="super_admin_full">مدير عام (تحكم كامل)</option>
+                                <option value="super_admin_verifier">مستلم / مراجع (شراء الموردين وجرد البضاعة)</option>
+                                <option value="super_admin_seller">بائع (مبيعات، ديون، مرتجعات، موظفين...)</option>
+                                <option value="super_admin_accountant">محاسب (سندات الواتساب والتقارير)</option>
+                                <option value="super_admin_partner">شريك (تقارير فقط)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="addPassword" class="form-label text-secondary small fw-bold">كلمة المرور</label>
+                            <input type="password" name="password" id="addPassword" class="form-control rounded-pill bg-white" required minlength="4" autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="addConfirmPassword" class="form-label text-secondary small fw-bold">تأكيد كلمة المرور</label>
+                            <input type="password" name="confirm_password" id="addConfirmPassword" class="form-control rounded-pill bg-white" required minlength="4" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-light justify-content-between">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">حفظ المستخدم <i class="fas fa-check ms-1"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <form id="editUserForm">
+                    <input type="hidden" name="user_id" id="editUserId">
+                    <div class="modal-header bg-dark text-white border-0">
+                        <h5 class="modal-title fw-bold"><i class="fas fa-user-edit me-2 text-warning"></i> تعديل مستخدم</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <div class="mb-3">
+                            <label for="editDisplayName" class="form-label text-secondary small fw-bold">الاسم الكامل</label>
+                            <input type="text" name="display_name" id="editDisplayName" class="form-control rounded-pill bg-white" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPhone" class="form-label text-secondary small fw-bold">رقم الهاتف</label>
+                            <input type="text" name="phone" id="editPhone" class="form-control rounded-pill bg-white">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRoleSelect" class="form-label text-secondary small fw-bold">الرتبة (الصلاحية الرئيسية)</label>
+                            <select name="role_group" id="editRoleSelect" class="form-select rounded-pill bg-white" required>
+                                <option value="super_admin_full">مدير عام (تحكم كامل)</option>
+                                <option value="super_admin_verifier">مستلم / مراجع (شراء الموردين وجرد البضاعة)</option>
+                                <option value="super_admin_seller">بائع (مبيعات، ديون، مرتجعات، موظفين...)</option>
+                                <option value="super_admin_accountant">محاسب (سندات الواتساب والتقارير)</option>
+                                <option value="super_admin_partner">شريك (تقارير فقط)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPassword" class="form-label text-secondary small fw-bold">تغيير كلمة المرور (اختياري)</label>
+                            <input type="password" id="editPassword" name="password" class="form-control rounded-pill bg-white" placeholder="اتركه فارغاً إذا لم ترد التغيير" minlength="4" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-light justify-content-between">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold">تحديث <i class="fas fa-sync-alt ms-1"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 <style>
     /* Styling for the nav pills inside the dark header */
@@ -270,15 +283,13 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
 <?php if ($is_full_admin): ?>
     <script>
         function loadUsers() {
-            console.log('loadUsers called');
             fetch('requests/manage_users.php?action=list')
                 .then(async response => {
                     const text = await response.text();
                     try {
                         return JSON.parse(text);
                     } catch (e) {
-                        console.error('Invalid JSON response:', text);
-                        throw new Error('Server returned invalid data format. Check console.');
+                        throw new Error('فشل في قراءة بيانات المستخدمين من الخادم.');
                     }
                 })
                 .then(data => {
@@ -360,94 +371,166 @@ $is_full_admin = (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Load users if we click the tab, or if it's open
-            const usersTabEl = document.getElementById('users-tab');
-            if (usersTabEl) {
-                usersTabEl.addEventListener('shown.bs.tab', loadUsers);
-                // Load initially just in case
+        var usersListenersAttached = false;
+
+        function switchTab(target) {
+            // Hide all panes
+            document.querySelectorAll('.tab-pane-custom').forEach(function(pane) {
+                pane.style.display = 'none';
+            });
+            // Remove active from all tab buttons
+            document.querySelectorAll('#settingsTabs button').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            // Show the selected pane
+            var pane = document.getElementById(target);
+            if (pane) pane.style.display = 'block';
+            // Mark selected button as active
+            var btn = document.getElementById(target + '-tab');
+            if (btn) btn.classList.add('active');
+            // Load users if switching to users tab
+            if (target === 'users') {
                 loadUsers();
+                attachUsersListeners();
             }
+        }
 
-            // Add User Form
-            document.getElementById('addUserForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-                formData.append('action', 'add');
+        function attachUsersListeners() {
+            if (usersListenersAttached) return;
+            usersListenersAttached = true;
 
-                fetch('requests/manage_users.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('تمت الإضافة بنجاح');
-                            this.reset();
-                            bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-                            loadUsers();
-                        } else {
-                            alert('خطأ: ' + data.error);
+            // Edit/delete button delegation
+            var usersTable = document.querySelector('#usersTable');
+            if (usersTable) {
+                usersTable.addEventListener('click', function(e) {
+                    var editBtn = e.target.closest('.edit-usr-btn');
+                    var delBtn = e.target.closest('.del-usr-btn');
+                    if (editBtn) {
+                        try {
+                            document.getElementById('editUserId').value = editBtn.dataset.id;
+                            document.getElementById('editDisplayName').value = editBtn.dataset.name;
+                            document.getElementById('editPhone').value = editBtn.dataset.phone;
+                            document.getElementById('editRoleSelect').value = editBtn.dataset.role;
+                            var editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal'));
+                            editModal.show();
+                        } catch (err) {
+                            console.error('Edit modal error:', err);
+                            alert('خطأ في فتح نافذة التعديل: ' + err.message);
                         }
-                    });
-            });
-
-            // Edit User Form
-            document.getElementById('editUserForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-                formData.append('action', 'edit');
-
-                fetch('requests/manage_users.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('تم التحديث بنجاح');
-                            this.reset();
-                            bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
-                            loadUsers();
-                        } else {
-                            alert('خطأ: ' + data.error);
-                        }
-                    });
-            });
-
-            // Delegate edit/delete clicks
-            document.querySelector('#usersTable').addEventListener('click', function(e) {
-                const editBtn = e.target.closest('.edit-usr-btn');
-                const delBtn = e.target.closest('.del-usr-btn');
-
-                if (editBtn) {
-                    document.getElementById('editUserId').value = editBtn.dataset.id;
-                    document.getElementById('editDisplayName').value = editBtn.dataset.name;
-                    document.getElementById('editPhone').value = editBtn.dataset.phone;
-                    document.getElementById('editRoleSelect').value = editBtn.dataset.role;
-                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
-                }
-
-                if (delBtn) {
-                    if (confirm('هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.')) {
-                        const formData = new FormData();
-                        formData.append('action', 'delete');
-                        formData.append('user_id', delBtn.dataset.id);
-                        fetch('requests/manage_users.php', {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    loadUsers();
-                                } else {
-                                    alert('خطأ: ' + data.error);
-                                }
-                            });
                     }
+                    if (delBtn) {
+                        if (confirm('هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                            var formData = new FormData();
+                            formData.append('action', 'delete');
+                            formData.append('user_id', delBtn.dataset.id);
+                            fetch('requests/manage_users.php', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(function(r) {
+                                    return r.json();
+                                })
+                                .then(function(data) {
+                                    if (data.success) {
+                                        loadUsers();
+                                    } else {
+                                        alert('خطأ: ' + data.error);
+                                    }
+                                });
+                        }
+                    }
+                });
+            }
+        }
+
+        function initSettingsWhenReady() {
+            if (typeof bootstrap !== 'undefined') {
+                // User Search Logic
+                var userSearchInput = document.getElementById('userSearchInput');
+                if (userSearchInput) {
+                    userSearchInput.addEventListener('input', function() {
+                        var filter = this.value.toLowerCase();
+                        var rows = document.querySelectorAll('#usersTable tbody tr');
+                        rows.forEach(function(row) {
+                            if (row.cells.length < 5) return; // Skip "Loading..." or "Error" rows
+                            var text = row.innerText.toLowerCase();
+                            row.style.display = text.includes(filter) ? '' : 'none';
+                        });
+                    });
                 }
-            });
-        });
+
+                // Add User Form submit
+                var addUserForm = document.getElementById('addUserForm');
+
+                // Extra security: Clear all password fields on load to fight aggressive browser auto-fill
+                setTimeout(function() {
+                    document.querySelectorAll('input[type="password"]').forEach(function(input) {
+                        input.value = '';
+                    });
+                }, 500);
+
+                if (addUserForm) addUserForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var formData = new FormData(this);
+
+                    var pw = document.getElementById('addPassword').value;
+                    var cpw = document.getElementById('addConfirmPassword').value;
+                    if (pw !== cpw) {
+                        alert('خطأ: كلمات المرور غير متطابقة!');
+                        return;
+                    }
+
+                    formData.append('action', 'add');
+                    fetch('requests/manage_users.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(data) {
+                            if (data.success) {
+                                alert('تمت الإضافة بنجاح');
+                                addUserForm.reset();
+                                var modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                                if (modal) modal.hide();
+                                loadUsers();
+                            } else {
+                                alert('خطأ: ' + data.error);
+                            }
+                        });
+                });
+
+                // Edit User Form submit
+                var editUserForm = document.getElementById('editUserForm');
+                if (editUserForm) editUserForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var formData = new FormData(this);
+                    formData.append('action', 'edit');
+                    fetch('requests/manage_users.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(data) {
+                            if (data.success) {
+                                alert('تم التحديث بنجاح');
+                                editUserForm.reset();
+                                var modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                                if (modal) modal.hide();
+                                loadUsers();
+                            } else {
+                                alert('خطأ: ' + data.error);
+                            }
+                        });
+                });
+            } else {
+                setTimeout(initSettingsWhenReady, 50);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initSettingsWhenReady);
     </script>
 <?php endif; ?>

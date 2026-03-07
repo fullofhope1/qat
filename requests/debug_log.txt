@@ -7,3 +7,38 @@
 2026-03-06 13:10:04 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
 2026-03-06 13:17:19 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
 2026-03-06 13:51:55 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-06 16:45:42 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-06 20:22:55 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-06 23:41:12 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-06 23:56:13 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 00:05:24 | Action: list | Session: []
+2026-03-07 00:09:20 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 00:09:36 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 00:10:41 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 00:21:39 | Action: list | Session: []
+2026-03-07 00:26:50 | Action: list | Session: []
+2026-03-07 00:27:55 | Action: list | Session: []
+2026-03-07 00:38:10 | Action: list | Session: []
+2026-03-07 00:55:44 | Action: list | Session: {"user_id":1,"role":"super_admin","sub_role":"full"}
+2026-03-07 00:58:58 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 00:59:06 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 01:00:03 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 01:01:26 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 01:02:19 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 01:02:35 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:33:02 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:45:21 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:45:38 | Action: delete | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:45:38 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:45:53 | Action: delete | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:45:53 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:48:53 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:50:52 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:51:07 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:51:20 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:54:34 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 11:56:19 | Action: list | Session: {"user_id":1,"username":"super admin","role":"super_admin","sub_role":"full"}
+2026-03-07 12:04:15 | Action: list | Session: []
+2026-03-07 12:07:27 | Action: list | Session: []
+2026-03-07 12:12:59 | Denied: UserID=unset, Role=unset, SubRole=unset | Session: []
+2026-03-07 12:13:21 | Denied: UserID=unset, Role=unset, SubRole=unset | Session: []

@@ -8,10 +8,18 @@ if (!$id) {
     exit;
 }
 
+// Initialization via Clean Architecture
+$repo = new StaffRepository($pdo);
+$service = new StaffService($repo);
+
+$id = $_GET['id'] ?? null;
+if (!$id) {
+    header("Location: staff.php");
+    exit;
+}
+
 // Fetch Staff Info
-$stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
-$stmt->execute([$id]);
-$staff = $stmt->fetch();
+$staff = $service->getById($id);
 
 if (!$staff) {
     echo "الموظف غير موجود.";
@@ -22,15 +30,7 @@ if (!$staff) {
 $month = $_GET['month'] ?? date('Y-m');
 
 // Fetch Withdrawals (Expenses with category='Staff')
-$stmt = $pdo->prepare("
-    SELECT * FROM expenses 
-    WHERE staff_id = ? 
-    AND category = 'Staff'
-    AND DATE_FORMAT(expense_date, '%Y-%m') = ?
-    ORDER BY expense_date DESC
-");
-$stmt->execute([$id, $month]);
-$withdrawals = $stmt->fetchAll();
+$withdrawals = $service->getStaffWithdrawals($id, $month);
 
 // Calculate Total for this month
 $monthTotal = 0;

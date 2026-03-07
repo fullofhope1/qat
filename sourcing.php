@@ -9,25 +9,19 @@ if ($_SESSION['role'] === 'super_admin') {
     exit;
 }
 
-// Fetch Types
-$types = $pdo->query("SELECT * FROM qat_types WHERE is_deleted = 0")->fetchAll();
+// Fetch Types & Providers via Clean Architecture
+$productRepo = new ProductRepository($pdo);
+$types = $productRepo->getAllActive();
 
-// Fetch Providers
-$providers = $pdo->query("SELECT * FROM providers ORDER BY name ASC")->fetchAll();
+$providerRepo = new ProviderRepository($pdo);
+$providers = $providerRepo->getAll();
 
 // Fetch Today's Shipments
 $today = date('Y-m-d');
 $user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("
-    SELECT p.*, t.name as type_name, prov.name as provider_name 
-    FROM purchases p 
-    LEFT JOIN qat_types t ON p.qat_type_id = t.id 
-    LEFT JOIN providers prov ON p.provider_id = prov.id 
-    WHERE p.purchase_date = ? AND p.created_by = ?
-    ORDER BY p.created_at DESC
-");
-$stmt->execute([$today, $user_id]);
-$shipments = $stmt->fetchAll();
+// Fetch Today's Shipments
+$purchaseRepo = new PurchaseRepository($pdo);
+$shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
 ?>
 
 <style>

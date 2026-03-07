@@ -2,9 +2,12 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Fetch Advertisements
-$stmt = $pdo->query("SELECT * FROM advertisements ORDER BY created_at DESC");
-$ads = $stmt->fetchAll();
+// Initialization via Clean Architecture
+$productRepo = new ProductRepository($pdo);
+$adRepo = new AdRepository($pdo);
+$service = new InventoryService($productRepo, $adRepo);
+
+$ads = $service->getManageAdsData();
 ?>
 
 <div class="row">

@@ -3,11 +3,10 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Fetch Providers (active ones)
-$user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT * FROM providers WHERE created_by = ? ORDER BY name ASC");
-$stmt->execute([$user_id]);
-$providers = $stmt->fetchAll();
+// Fetch Providers via Clean Architecture
+$providerRepo = new ProviderRepository($pdo);
+$providerService = new ProviderService($providerRepo);
+$providers = $providerService->listProviders($_SESSION['user_id']);
 ?>
 
 <div class="row mb-4 animate__animated animate__fadeIn">

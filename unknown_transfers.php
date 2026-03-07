@@ -2,15 +2,13 @@
 require 'config/db.php';
 include 'includes/header.php';
 
-// Try to add currency column (safe idempotent)
-try {
-    $pdo->exec("ALTER TABLE unknown_transfers ADD COLUMN currency VARCHAR(5) DEFAULT 'YER'");
-} catch (PDOException $e) { /* column exists, ignore */
-}
+// Initialization via Clean Architecture
+$commRepo = new CommunicationRepository($pdo);
+$service = new CommunicationService($commRepo);
+$custRepo = new CustomerRepository($pdo);
 
-// Fetch recent unknown transfers
-$stmt = $pdo->query("SELECT * FROM unknown_transfers ORDER BY transfer_date DESC, created_at DESC LIMIT 100");
-$transfers = $stmt->fetchAll();
+$transfers = $service->getUnknownTransfersData();
+$customers = $custRepo->getAllActive();
 ?>
 
 <style>
@@ -63,15 +61,51 @@ $transfers = $stmt->fetchAll();
         display: block;
     }
 
+    /* Premium Upgrades */
     .transfer-card {
-        border-radius: 20px;
+        border-radius: 24px;
         overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
     }
 
     .transfer-header {
-        background: linear-gradient(135deg, #f59e0b, #f97316);
-        padding: 1.5rem 2rem;
+        background: var(--brand-gradient);
+        padding: 2rem;
+        position: relative;
+    }
+
+    .transfer-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+    }
+
+    .table-hover tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 193, 7, 0.05);
+        transform: scale(1.005);
+    }
+
+    .btn-premium {
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        font-weight: 700;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
 </style>
 
@@ -219,9 +253,14 @@ $transfers = $stmt->fetchAll();
                                         <td class="fw-bold text-success"><?= number_format($t['amount'], 0) ?></td>
                                         <td><span class="badge bg-secondary"><?= $t['currency'] ?? 'YER' ?></span></td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-warning rounded-pill" onclick="editTransfer(<?= htmlspecialchars(json_encode($t)) ?>)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
+                                            <div class="d-flex gap-1">
+                                                <button class="btn btn-sm btn-outline-warning rounded-pill" onclick="editTransfer(<?= htmlspecialchars(json_encode($t)) ?>)" title="تعديل">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-success rounded-pill" onclick="openLinkModal(<?= htmlspecialchars(json_encode($t)) ?>)" title="ربط بعميل">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -291,6 +330,45 @@ $transfers = $stmt->fetchAll();
     </div>
 </div>
 
+<!-- Link to Customer Modal -->
+<div class="modal fade" id="linkTransferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-success text-white border-0" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-link me-2"></i> ربط التحويل بعميل</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info border-0 shadow-sm mb-4">
+                    <p class="mb-1 small text-muted">سيتم تحويل هذا المبلغ إلى "سداد" في حساب العميل المختار.</p>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span id="link_tf_info_receipt" class="fw-bold"></span>
+                        <span id="link_tf_info_amount" class="badge bg-success fs-6"></span>
+                    </div>
+                </div>
+
+                <input type="hidden" id="link_tf_id">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">اختر العميل</label>
+                    <input type="text" id="custSearch" class="form-control mb-2" placeholder="🔍 ابحث عن اسم العميل...">
+                    <select id="link_tf_customer" class="form-select form-select-lg" size="5">
+                        <?php foreach ($customers as $c): ?>
+                            <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?> (<?= $c['phone'] ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4">
+                <button type="button" class="btn btn-light btn-premium opacity-75" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success btn-premium px-4" onclick="confirmLink()">
+                    <i class="fas fa-check-circle me-1"></i> تنفيذ الربط
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Search
     document.getElementById('tfSearch').addEventListener('input', function() {
@@ -310,6 +388,54 @@ $transfers = $stmt->fetchAll();
         document.getElementById('edit_tf_currency').value = t.currency || 'YER';
         document.getElementById('edit_tf_notes').value = t.notes || '';
         new bootstrap.Modal(document.getElementById('editTransferModal')).show();
+    }
+
+    // Link Modal
+    function openLinkModal(t) {
+        document.getElementById('link_tf_id').value = t.id;
+        document.getElementById('link_tf_info_receipt').textContent = 'سند رقم: ' + t.receipt_number;
+        document.getElementById('link_tf_info_amount').textContent = parseFloat(t.amount).toLocaleString() + ' ' + (t.currency || 'YER');
+        new bootstrap.Modal(document.getElementById('linkTransferModal')).show();
+    }
+
+    // Customer search in modal
+    document.getElementById('custSearch').addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        const select = document.getElementById('link_tf_customer');
+        for (let opt of select.options) {
+            opt.style.display = opt.text.toLowerCase().includes(term) ? '' : 'none';
+        }
+    });
+
+    async function confirmLink() {
+        const transferId = document.getElementById('link_tf_id').value;
+        const customerId = document.getElementById('link_tf_customer').value;
+
+        if (!customerId) {
+            alert('يرجى اختيار العميل أولاً.');
+            return;
+        }
+
+        if (!confirm('هل أنت متأكد من ربط هذا التحويل بهذا العميل؟ سيتم حذفه من هذه القائمة وإضافته كسداد للعميل.')) return;
+
+        const formData = new FormData();
+        formData.append('transfer_id', transferId);
+        formData.append('customer_id', customerId);
+
+        try {
+            const resp = await fetch('requests/link_transfer_ajax.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'فشل في ربط التحويل.');
+            }
+        } catch (e) {
+            alert('حدث خطأ أثناء الاتصال بالخادم.');
+        }
     }
 
     // Step wizard

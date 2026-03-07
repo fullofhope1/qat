@@ -1,0 +1,16 @@
+ID: 1 | User: super admin | Role: super_admin | SubRole: full
+ID: 2 | User: admin | Role: admin | SubRole: full
+ID: 3 | User: admin1 | Role: user | SubRole: full
+ID: 4 | User: abood | Role: user | SubRole: full
+ID: 5 | User: Abdul | Role: super_admin | SubRole: reports
+ID: 6 | User: Mohammed | Role: super_admin | SubRole: full
+ID: 7 | User: Abdullah | Role: super_admin | SubRole: sales_debts
+ID: 8 | User: Aham | Role: super_admin | SubRole: receiving
+ID: 9 | User: 202310400240 | Role: user | SubRole: full
+ID: 10 | User: 2023104002 | Role: user | SubRole: full
+ID: 11 | User: ali | Role: user | SubRole: full
+ID: 12 | User: ad | Role: user | SubRole: full
+ID: 14 | User: four | Role: user | SubRole: full
+ID: 15 | User: three | Role: user | SubRole: full
+ID: 16 | User: two | Role: user | SubRole: full
+ID: 17 | User: one | Role: user | SubRole: full
