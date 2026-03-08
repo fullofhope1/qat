@@ -188,7 +188,7 @@ if (!empty($freshProducts)) {
                                         <p class="text-secondary">أنت مسجل كـ <strong><?= htmlspecialchars($_SESSION['role']) ?></strong>.</p>
                                         <div class="d-grid gap-2 mt-4">
                                             <?php if ($_SESSION['role'] !== 'user'): ?>
-                                                <a href="dashboard.php" class="btn btn-warning fw-bold rounded-pill shadow-sm">دخول نظام الإدارة <i class="fas fa-arrow-left ms-1"></i></a>
+                                                <a href="<?= htmlspecialchars(getHomeLink()) ?>" class="btn btn-warning fw-bold rounded-pill shadow-sm">دخول نظام الإدارة <i class="fas fa-arrow-left ms-1"></i></a>
                                             <?php endif; ?>
                                             <a href="logout.php" class="btn btn-outline-danger fw-bold rounded-pill">تسجيل الخروج</a>
                                         </div>

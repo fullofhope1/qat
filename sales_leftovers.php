@@ -7,7 +7,7 @@ $types = $pdo->query("SELECT * FROM qat_types WHERE is_deleted = 0")->fetchAll()
 
 // 1. Fetch Manual Leftovers (Items explicitly transferred to leftovers yesterday)
 $today = date('Y-m-d');
-$sqlL = "SELECT l.id as lid, l.weight_kg, l.source_date, l.sale_date, t.name as type_name, t.id as type_id, 'manual' as type, prov.name as provider_name 
+$sqlL = "SELECT l.id as lid, l.weight_kg, l.quantity_units, l.source_date, l.sale_date, t.name as type_name, t.id as type_id, 'manual' as type, prov.name as provider_name, p.unit_type
          FROM leftovers l 
          JOIN qat_types t ON l.qat_type_id = t.id 
          LEFT JOIN purchases p ON l.purchase_id = p.id
@@ -19,7 +19,7 @@ $stmtL->execute([]);
 $manualLeftovers = $stmtL->fetchAll();
 
 // 2. Fetch Momsi Stock (from purchases table) - only for today's business date
-$sqlM = "SELECT p.id as pid, p.quantity_kg as weight_kg, p.purchase_date as source_date, t.name as type_name, t.id as type_id, 'momsi' as type, prov.name as provider_name 
+$sqlM = "SELECT p.id as pid, p.quantity_kg as weight_kg, p.source_units as quantity_units, p.purchase_date as source_date, t.name as type_name, t.id as type_id, 'momsi' as type, prov.name as provider_name, p.unit_type
          FROM purchases p 
          JOIN qat_types t ON p.qat_type_id = t.id 
          LEFT JOIN providers prov ON p.provider_id = prov.id
@@ -33,12 +33,23 @@ $momsiStock = $stmtM->fetchAll();
 // Combine and calculate remaining
 $leftoverStocks = [];
 foreach ($manualLeftovers as $l) {
-    $stmt = $pdo->prepare("SELECT SUM(weight_kg) FROM sales WHERE leftover_id = ?");
-    $stmt->execute([$l['lid']]);
-    $sold = $stmt->fetchColumn() ?: 0;
-    $rem = $l['weight_kg'] - $sold;
-    if ($rem > 0.001) {
-        $l['remaining_kg'] = round($rem, 3);
+    if ($l['unit_type'] === 'weight') {
+        $stmt = $pdo->prepare("SELECT SUM(weight_kg) FROM sales WHERE leftover_id = ?");
+        $stmt->execute([$l['lid']]);
+        $sold = $stmt->fetchColumn() ?: 0;
+        $rem = $l['weight_kg'] - $sold;
+        $remCheck = $rem > 0.001;
+    } else {
+        $stmt = $pdo->prepare("SELECT SUM(quantity_units) FROM sales WHERE leftover_id = ?");
+        $stmt->execute([$l['lid']]);
+        $sold = $stmt->fetchColumn() ?: 0;
+        $rem = $l['quantity_units'] - $sold;
+        $remCheck = $rem > 0;
+    }
+
+    if ($remCheck) {
+        $l['remaining_kg'] = $l['unit_type'] === 'weight' ? round($rem, 3) : 0;
+        $l['remaining_units'] = $l['unit_type'] !== 'weight' ? (int)$rem : 0;
         $l['id'] = $l['lid'];
         $l['provider_name'] = $l['provider_name'] ?: 'بقايا عامة (General)';
         $leftoverStocks[] = $l;
@@ -46,12 +57,23 @@ foreach ($manualLeftovers as $l) {
 }
 
 foreach ($momsiStock as $m) {
-    $stmt = $pdo->prepare("SELECT SUM(weight_kg) FROM sales WHERE purchase_id = ?");
-    $stmt->execute([$m['pid']]);
-    $sold = $stmt->fetchColumn() ?: 0;
-    $rem = $m['weight_kg'] - $sold;
-    if ($rem > 0.001) {
-        $m['remaining_kg'] = round($rem, 3);
+    if ($m['unit_type'] === 'weight') {
+        $stmt = $pdo->prepare("SELECT SUM(weight_kg) FROM sales WHERE purchase_id = ?");
+        $stmt->execute([$m['pid']]);
+        $sold = $stmt->fetchColumn() ?: 0;
+        $rem = $m['weight_kg'] - $sold;
+        $remCheck = $rem > 0.001;
+    } else {
+        $stmt = $pdo->prepare("SELECT SUM(quantity_units) FROM sales WHERE purchase_id = ?");
+        $stmt->execute([$m['pid']]);
+        $sold = $stmt->fetchColumn() ?: 0;
+        $rem = $m['quantity_units'] - $sold;
+        $remCheck = $rem > 0;
+    }
+
+    if ($remCheck) {
+        $m['remaining_kg'] = $m['unit_type'] === 'weight' ? round($rem, 3) : 0;
+        $m['remaining_units'] = $m['unit_type'] !== 'weight' ? (int)$rem : 0;
         $m['id'] = $m['pid'];
         $m['provider_name'] = $m['provider_name'] ?: 'بقايا عامة (General)';
         $leftoverStocks[] = $m;
@@ -165,7 +187,7 @@ $jsonCustomers = json_encode($customers);
                 <span>النوع: <b id="s_type">-</b></span>
                 <span>الرعوي: <b id="s_rawi">-</b></span>
                 <span>الزبون: <b id="s_cust">-</b></span>
-                <span>الوزن: <b id="s_weight">-</b></span>
+                <span id="label_weight">الوزن: <b id="s_weight">-</b></span>
                 <span>السعر: <b id="s_price">-</b></span>
             </div>
 
@@ -184,6 +206,8 @@ $jsonCustomers = json_encode($customers);
         <input type="hidden" name="source_page" value="leftovers">
         <input type="hidden" name="customer_id" id="i_cust">
         <input type="hidden" name="weight_grams" id="i_weight">
+        <input type="hidden" name="unit_type" id="i_unit_type">
+        <input type="hidden" name="quantity_units" id="i_units">
         <input type="hidden" name="price" id="i_price">
         <input type="hidden" name="payment_method" id="i_method">
         <input type="hidden" name="debt_type" id="i_dtype">
@@ -233,16 +257,41 @@ $jsonCustomers = json_encode($customers);
             <div class="mt-4"><button type="button" class="btn btn-secondary" onclick="backStep(2)">عودة</button></div>
         </div>
 
-        <!-- STEP 4: Weight -->
+        <!-- STEP 4: Weight / Quantity -->
         <div id="step4" class="step-container">
-            <h3>الوزن</h3>
+            <h3 id="step4_title">الوزن</h3>
             <div class="grid-container">
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 50)">50g</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 100)">100g</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 250)">250g</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 500)">500g</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 1000)">1000g</button>
+                <!-- Weight Presets -->
+                <div id="weightPresets" class="d-flex flex-wrap justify-content-center gap-3 w-100">
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 50)">50g</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 100)">100g</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 250)">250g</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 500)">500g</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 1000)">1000g</button>
+                </div>
+
+                <!-- Unit Presets -->
+                <div id="unitPresets" class="d-none flex-wrap justify-content-center gap-3 w-100">
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 1)">1</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 2)">2</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 3)">3</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 4)">4</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 5)">5</button>
+                </div>
             </div>
+
+            <!-- Manual Input Support -->
+            <div class="mt-4"><button type="button" class="btn btn-dark" onclick="showManualInput()">يدوي</button></div>
+
+            <div id="manualWeight" class="d-none mt-3 w-25 mx-auto">
+                <input type="number" id="m_weight_val" class="form-control text-center" placeholder="جرام">
+                <button type="button" class="btn btn-primary mt-2 w-100" onclick="confirmManual(4)">تأكيد</button>
+            </div>
+            <div id="manualUnits" class="d-none mt-3 w-25 mx-auto">
+                <input type="number" id="m_units_val" class="form-control text-center" placeholder="العدد">
+                <button type="button" class="btn btn-primary mt-2 w-100" onclick="confirmManual(4)">تأكيد</button>
+            </div>
+
             <div class="mt-4"><button type="button" class="btn btn-secondary" onclick="backStep(3)">عودة</button></div>
         </div>
 
@@ -300,12 +349,31 @@ $jsonCustomers = json_encode($customers);
             document.getElementById('i_pid').value = data.type === 'momsi' ? data.id : '';
             document.getElementById('i_status').value = data.type === 'momsi' ? 'Momsi' : 'Leftover';
             document.getElementById('s_rawi').innerText = data.name;
+
+            const unitType = data.unit_type || 'weight';
+            document.getElementById('i_unit_type').value = unitType;
+            const isUnitMode = unitType !== 'weight';
+
+            // UI Adjustments
+            document.getElementById('label_weight').innerHTML = isUnitMode ? `الكمية (${unitType}): <b id="s_weight">-</b>` : `الوزن: <b id="s_weight">-</b>`;
+            document.getElementById('step4_title').innerText = isUnitMode ? `الكمية (${unitType})` : 'الوزن';
+            document.getElementById('weightPresets').classList.toggle('d-none', isUnitMode);
+            document.getElementById('unitPresets').classList.toggle('d-none', !isUnitMode);
+
         } else if (step === 3) { // Customer
             document.getElementById('i_cust').value = data.id;
             document.getElementById('s_cust').innerText = data.name;
-        } else if (step === 4) { // Weight
-            document.getElementById('i_weight').value = data;
-            document.getElementById('s_weight').innerText = data + ' جرام';
+        } else if (step === 4) { // Weight / Units
+            const unitType = document.getElementById('i_unit_type').value;
+            if (unitType === 'weight') {
+                document.getElementById('i_weight').value = data;
+                document.getElementById('i_units').value = 0;
+                document.getElementById('s_weight').innerText = data + ' جرام';
+            } else {
+                document.getElementById('i_units').value = data;
+                document.getElementById('i_weight').value = 0;
+                document.getElementById('s_weight').innerText = data + ' ' + unitType;
+            }
         } else if (step === 5) { // Price
             document.getElementById('i_price').value = data;
             document.getElementById('s_price').innerText = data;
@@ -330,16 +398,47 @@ $jsonCustomers = json_encode($customers);
             providers.forEach(p => {
                 const btn = document.createElement('button');
                 btn.className = 'circle-btn btn-provider';
-                btn.type = 'button'; // Prevent unwanted form submission!
-                const label = `<span>${p.provider_name}</span><br><small class="badge bg-light text-dark text-wrap">${p.sale_date || p.source_date}</small><br><small>${p.remaining_kg} كجم</small>`;
+                btn.type = 'button';
+
+                const unitType = p.unit_type || 'weight';
+                const isUnitMode = unitType !== 'weight';
+                const remLabel = isUnitMode ? `${p.remaining_units} ${unitType}` : `${p.remaining_kg} كجم`;
+
+                const label = `<span>${p.provider_name}</span><br><small class="badge bg-light text-dark text-wrap">${p.sale_date || p.source_date}</small><br><small>${remLabel}</small>`;
                 btn.innerHTML = label;
                 btn.onclick = () => nextStep(2, {
                     id: p.id,
                     name: p.provider_name,
-                    type: p.type
+                    type: p.type,
+                    unit_type: unitType
                 });
                 grid.appendChild(btn);
             });
+        }
+    }
+
+    function showManualInput() {
+        const unitType = document.getElementById('i_unit_type').value;
+        if (unitType === 'weight') {
+            document.getElementById('manualWeight').classList.remove('d-none');
+            document.getElementById('manualUnits').classList.add('d-none');
+        } else {
+            document.getElementById('manualUnits').classList.remove('d-none');
+            document.getElementById('manualWeight').classList.add('d-none');
+        }
+    }
+
+    function confirmManual(step) {
+        if (step === 4) {
+            const unitType = document.getElementById('i_unit_type').value;
+            let val = 0;
+            if (unitType === 'weight') {
+                val = document.getElementById('m_weight_val').value;
+            } else {
+                val = document.getElementById('m_units_val').value;
+            }
+            if (val > 0) nextStep(4, val);
+            else alert("الرجاء إدخال القيمة");
         }
     }
 

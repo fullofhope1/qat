@@ -31,8 +31,10 @@ $totalInflow = $salesSummary['cash_sales'] + $collectedPayments;
 $totalOutflow = $totalExpenses + $cashRefunds + $depositsYER;
 $remainingCash = $totalInflow - $totalOutflow;
 
-$totalDroppedKg  = ($leftoversSummary['manual_dropped_kg'] ?? 0) + ($leftoversSummary['auto_dropped_kg'] ?? 0);
-$totalMomsiKg    = ($leftoversSummary['manual_momsi_kg'] ?? 0) + ($leftoversSummary['auto_momsi_kg'] ?? 0);
+$totalDroppedKg    = ($leftoversSummary['manual_dropped_kg'] ?? 0) + ($leftoversSummary['auto_dropped_kg'] ?? 0);
+$totalMomsiKg      = ($leftoversSummary['manual_momsi_kg'] ?? 0) + ($leftoversSummary['auto_momsi_kg'] ?? 0);
+$totalDroppedUnits = ($leftoversSummary['manual_dropped_units'] ?? 0) + ($leftoversSummary['auto_dropped_units'] ?? 0);
+$totalMomsiUnits   = ($leftoversSummary['manual_momsi_units'] ?? 0) + ($leftoversSummary['auto_momsi_units'] ?? 0);
 ?>
 
 ?>
@@ -259,41 +261,49 @@ $totalMomsiKg    = ($leftoversSummary['manual_momsi_kg'] ?? 0) + ($leftoversSumm
                     <div class="col-6 col-md-3">
                         <div class="bg-danger bg-opacity-10 rounded-3 p-3">
                             <div class="text-danger small fw-bold mb-1"><i class="fas fa-trash-alt me-1"></i> إتلاف يدوي</div>
-                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['manual_dropped_kg'] ?? 0, 2) ?></div>
-                            <div class="text-muted small">كجم</div>
+                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['manual_dropped_kg'] ?? 0, 2) ?> <small class="fs-6">كجم</small></div>
+                            <div class="text-muted small"><?= (int)($leftoversSummary['manual_dropped_units'] ?? 0) ?> قبضة/قرطاس</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="bg-danger bg-opacity-10 rounded-3 p-3" style="opacity: 0.75;">
                             <div class="text-danger small fw-bold mb-1"><i class="fas fa-robot me-1"></i> إتلاف تلقائي</div>
-                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['auto_dropped_kg'] ?? 0, 2) ?></div>
-                            <div class="text-muted small">كجم</div>
+                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['auto_dropped_kg'] ?? 0, 2) ?> <small class="fs-6">كجم</small></div>
+                            <div class="text-muted small"><?= (int)($leftoversSummary['auto_dropped_units'] ?? 0) ?> قبضة/قرطاس</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="bg-primary bg-opacity-10 rounded-3 p-3">
                             <div class="text-primary small fw-bold mb-1"><i class="fas fa-arrow-right me-1"></i> ممسي يدوي</div>
-                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['manual_momsi_kg'] ?? 0, 2) ?></div>
-                            <div class="text-muted small">كجم</div>
+                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['manual_momsi_kg'] ?? 0, 2) ?> <small class="fs-6">كجم</small></div>
+                            <div class="text-muted small"><?= (int)($leftoversSummary['manual_momsi_units'] ?? 0) ?> قبضة/قرطاس</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="bg-info bg-opacity-10 rounded-3 p-3">
                             <div class="text-info small fw-bold mb-1"><i class="fas fa-robot me-1"></i> ممسي تلقائي</div>
-                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['auto_momsi_kg'] ?? 0, 2) ?></div>
-                            <div class="text-muted small">كجم</div>
+                            <div class="h4 fw-bold mb-0"><?= number_format($leftoversSummary['auto_momsi_kg'] ?? 0, 2) ?> <small class="fs-6">كجم</small></div>
+                            <div class="text-muted small"><?= (int)($leftoversSummary['auto_momsi_units'] ?? 0) ?> قبضة/قرطاس</div>
                         </div>
                     </div>
                 </div>
                 <div class="mt-3 pt-3 border-top d-flex justify-content-around text-center">
                     <div>
                         <div class="text-muted small">إجمالي التالف</div>
-                        <div class="h5 fw-bold text-danger mb-0"><?= number_format($totalDroppedKg, 2) ?> كجم</div>
+                        <div class="h5 fw-bold text-danger mb-0">
+                            <?= number_format($totalDroppedKg, 2) ?> كجم
+                            <span class="ms-2 text-muted fw-normal fs-6">|</span>
+                            <?= (int)$totalDroppedUnits ?> ق/ق
+                        </div>
                     </div>
                     <div class="vr"></div>
                     <div>
                         <div class="text-muted small">إجمالي الممسي (المرحّل)</div>
-                        <div class="h5 fw-bold text-primary mb-0"><?= number_format($totalMomsiKg, 2) ?> كجم</div>
+                        <div class="h5 fw-bold text-primary mb-0">
+                            <?= number_format($totalMomsiKg, 2) ?> كجم
+                            <span class="ms-2 text-muted fw-normal fs-6">|</span>
+                            <?= (int)$totalMomsiUnits ?> ق/ق
+                        </div>
                     </div>
                 </div>
             </div>

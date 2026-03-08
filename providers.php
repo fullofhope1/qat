@@ -1,81 +1,89 @@
 <?php
-// providers.php - Management page for Providers (الرعية)
+// Added: providers.php - Management page for Providers (الرعية)
 require 'config/db.php';
 include 'includes/header.php';
+
+if ($_SESSION['role'] === 'user') {
+    header("Location: index.php");
+    exit;
+}
+
+// Strict Check: Providers is NOT for Super Admins
+if ($_SESSION['role'] === 'super_admin') {
+    header("Location: dashboard.php");
+    exit;
+}
 
 // Fetch Providers via Clean Architecture
 $providerRepo = new ProviderRepository($pdo);
 $providerService = new ProviderService($providerRepo);
 $providers = $providerService->listProviders($_SESSION['user_id']);
 ?>
-
-<div class="row mb-4 animate__animated animate__fadeIn">
-    <div class="col-12">
-        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-            <div class="card-header bg-dark text-white p-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <div class="bg-warning text-dark p-3 rounded-circle me-3">
-                        <i class="fas fa-users-cog fa-lg"></i>
-                    </div>
-                    <div>
-                        <h4 class="mb-0 fw-bold">إدارة الرعية (الموردين)</h4>
-                        <p class="mb-0 small opacity-75">عرض وإدارة بيانات الموردين المسجلين في النظام</p>
-                    </div>
-                </div>
-                <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addProviderModal">
-                    <i class="fas fa-plus me-1"></i> إضافة راعي جديد
-                </button>
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="card-header bg-dark text-white p-4 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <div class="bg-warning text-dark p-3 rounded-circle me-3">
+                <i class="fas fa-users-cog fa-lg"></i>
             </div>
-            <div class="card-body p-0">
-                <!-- Search Box -->
-                <div class="p-3 bg-light border-bottom">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" id="providerSearch" class="form-control border-start-0" placeholder="بحث باسم الراعي أو رقم الهاتف..." onkeyup="filterProviders()">
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light text-muted small text-uppercase fw-bold">
-                            <tr>
-                                <th class="px-4 py-3">الاسم</th>
-                                <th class="px-4 py-3">رقم الهاتف</th>
-                                <th class="px-4 py-3 text-center">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="providerTableBody">
-                            <?php if (empty($providers)): ?>
-                                <tr>
-                                    <td colspan="3" class="text-center py-5 text-muted">
-                                        <i class="fas fa-user-slash fa-3x mb-3 opacity-25"></i>
-                                        <p>لا يوجد موردين مسجلين بعد.</p>
-                                    </td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($providers as $p): ?>
-                                    <tr>
-                                        <td class="px-4 py-3 fw-bold text-dark"><?= htmlspecialchars($p['name']) ?></td>
-                                        <td class="px-4 py-3 text-secondary"><?= htmlspecialchars($p['phone']) ?></td>
-                                        <td class="px-4 py-3 text-center">
-                                            <div class="btn-group shadow-sm rounded-pill overflow-hidden">
-                                                <button class="btn btn-sm btn-outline-warning" onclick='editProvider(<?= json_encode($p) ?>)' title="تعديل">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProvider(<?= $p['id'] ?>)" title="حذف">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+            <div>
+                <h4 class="mb-0 fw-bold">إدارة الرعية (الموردين)</h4>
+                <p class="mb-0 small opacity-75">عرض وإدارة بيانات الموردين المسجلين في النظام</p>
             </div>
         </div>
+        <button class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addProviderModal">
+            <i class="fas fa-plus me-1"></i> إضافة راعي جديد
+        </button>
     </div>
+    <div class="card-body p-0">
+        <!-- Search Box -->
+        <div class="p-3 bg-light border-bottom">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="providerSearch" class="form-control border-start-0" placeholder="بحث باسم الراعي أو رقم الهاتف..." onkeyup="filterProviders()">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase fw-bold">
+                    <tr>
+                        <th class="px-4 py-3">الاسم</th>
+                        <th class="px-4 py-3">رقم الهاتف</th>
+                        <th class="px-4 py-3 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="providerTableBody">
+                    <?php if (empty($providers)): ?>
+                        <tr>
+                            <td colspan="3" class="text-center py-5 text-muted">
+                                <i class="fas fa-user-slash fa-3x mb-3 opacity-25"></i>
+                                <p>لا يوجد موردين مسجلين بعد.</p>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($providers as $p): ?>
+                            <tr>
+                                <td class="px-4 py-3 fw-bold text-dark"><?= htmlspecialchars($p['name']) ?></td>
+                                <td class="px-4 py-3 text-secondary"><?= htmlspecialchars($p['phone']) ?></td>
+                                <td class="px-4 py-3 text-center">
+                                    <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                        <button class="btn btn-sm btn-outline-warning" onclick='editProvider(<?= json_encode($p) ?>)' title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProvider(<?= $p['id'] ?>)" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
 </div>
 
 <!-- Add Provider Modal -->

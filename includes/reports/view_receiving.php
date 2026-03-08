@@ -74,10 +74,18 @@
                                     <span class="badge bg-success-subtle text-success border border-success-subtle"><?= htmlspecialchars($p['type_name']) ?></span>
                                 </td>
                                 <td class="text-center text-muted">
-                                    <?= number_format($p['source_weight_grams'] / 1000, 2) ?> كجم
+                                    <?php if (($p['unit_type'] ?? 'weight') === 'weight'): ?>
+                                        <?= number_format($p['source_weight_grams'] / 1000, 2) ?> كجم
+                                    <?php else: ?>
+                                        <?= (int)$p['source_units'] . ' ' . ($p['unit_type'] ?? '') ?>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-center fw-bold text-dark">
-                                    <?= number_format($p['received_weight_grams'] / 1000, 2) ?> كجم
+                                    <?php if (($p['unit_type'] ?? 'weight') === 'weight'): ?>
+                                        <?= number_format($p['received_weight_grams'] / 1000, 2) ?> كجم
+                                    <?php else: ?>
+                                        <?= (int)($p['quantity_kg'] ?? 0) . ' ' . ($p['unit_type'] ?? '') ?>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-end fw-bold text-success">
                                     <?= number_format($p['net_cost']) ?>

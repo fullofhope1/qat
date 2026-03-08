@@ -30,7 +30,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'user' && !in_array($cu
 }
 
 // For Admins -> Restrict access to some pages if not super_admin
-$admin_allowed_pages = ['sourcing.php', 'providers.php', 'expenses.php', 'admin_report.php', 'settings.php', 'logout.php', 'dashboard.php', 'refunds.php', 'manage_ads.php', 'manage_products.php', 'staff.php', 'staff_details.php'];
+$admin_allowed_pages = ['sourcing.php', 'providers.php', 'expenses.php', 'admin_report.php', 'settings.php', 'logout.php', 'admin_dashboard.php', 'refunds.php', 'staff.php', 'staff_details.php', 'process_receiving.php'];
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin' && !in_array($current_page, $admin_allowed_pages) && !in_array($current_page, $public_pages)) {
     header("Location: access_denied.php");
     exit;
@@ -182,6 +182,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         <li class="nav-item">
                             <a class="<?= adminNavClass('staff.php', $current_page, 'light') ?>" href="staff.php">
                                 <i class="fas fa-user-hard-hat me-1"></i> الموظفين
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="<?= adminNavClass('refunds.php', $current_page, 'danger') ?>" href="refunds.php">
+                                <i class="fas fa-hand-holding-usd me-1"></i> التعويضات
                             </a>
                         </li>
                         <li class="nav-item">

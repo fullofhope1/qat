@@ -18,7 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'purchase_id' => !empty($_POST['purchase_id']) ? $_POST['purchase_id'] : null,
             'leftover_id' => !empty($_POST['leftover_id']) ? $_POST['leftover_id'] : null,
             'qat_status' => !empty($_POST['qat_status']) ? $_POST['qat_status'] : 'Tari',
-            'weight_grams' => (float)$_POST['weight_grams'],
+            'unit_type' => $_POST['unit_type'] ?? 'weight',
+            'weight_grams' => (float)($_POST['weight_grams'] ?? 0),
+            'quantity_units' => (int)($_POST['quantity_units'] ?? 0),
             'price' => (float)$_POST['price'],
             'payment_method' => $_POST['payment_method'],
             'transfer_sender' => !empty($_POST['transfer_sender']) ? $_POST['transfer_sender'] : null,
@@ -44,9 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorCode = $parts[0];
 
         if ($errorCode === 'InventoryExceeded') {
-            showErrorPage("عذراً، الكمية غير متوفرة", "لقد طلبت كمية أكبر من المخزون المتاح لهذا المورد.", "Available: {$parts[1]}kg <br> Requested: {$parts[2]}kg");
+            showErrorPage("عذراً، الكمية غير متوفرة", "لقد طلبت كمية أكبر من المخزون المتاح لهذا المورد.", "المتاح: {$parts[1]} <br> المطلوب: {$parts[2]}");
         } elseif ($errorCode === 'LeftoverExceeded') {
-            showErrorPage("عذراً، الكمية غير متوفرة (بقايا)", "الكمية المطلوبة من البقايا غير متوفرة.", "Available: {$parts[1]}kg <br> Requested: {$parts[2]}kg");
+            showErrorPage("عذراً، الكمية غير متوفرة (بقايا)", "الكمية المطلوبة من البقايا غير متوفرة.", "المتاح: {$parts[1]} <br> المطلوب: {$parts[2]}");
         } elseif ($errorCode === 'CreditLimitExceeded') {
             showErrorPage("تم تجاوز سقف الدين!", "لا يمكن إتمام العملية لأن الزبون تجاوز الحد المسموح للدين.", "Limit: " . number_format($parts[1]) . " YER <br> Current Debt: " . number_format($parts[2]) . " YER");
         } else {

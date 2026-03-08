@@ -1,5 +1,6 @@
 <?php
 require 'config/db.php';
+require_once 'includes/Autoloader.php';
 
 if (!isset($_GET['id'])) {
     header('Location: customers.php');

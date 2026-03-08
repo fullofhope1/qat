@@ -99,7 +99,11 @@
                                     <span class="badge bg-info-subtle text-info border border-info-subtle"><?= htmlspecialchars($s['type_name']) ?></span>
                                 </td>
                                 <td class="text-center fw-bold">
-                                    <?= $s['weight_grams'] < 1000 ? $s['weight_grams'] . ' ج' : $s['weight_kg'] . ' كجم' ?>
+                                    <?php if ($s['unit_type'] === 'weight'): ?>
+                                        <?= $s['weight_grams'] < 1000 ? $s['weight_grams'] . ' ج' : $s['weight_kg'] . ' كجم' ?>
+                                    <?php else: ?>
+                                        <?= (int)$s['quantity_units'] . ' ' . $s['unit_type'] ?>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-end fw-bold text-dark">
                                     <?= number_format($s['price']) ?>

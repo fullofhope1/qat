@@ -30,13 +30,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $data = [
-            'purchase_date' => $_POST['purchase_date'] ?? date('Y-m-d'),
-            'provider_id' => $_POST['provider_id'],
-            'type_name' => trim($_POST['type_name']),
-            'source_weight_grams' => $_POST['source_weight_grams'],
-            'price_per_kilo' => $_POST['price_per_kilo'],
-            'media_path' => $media_path,
-            'created_by' => $_SESSION['user_id']
+            'purchase_date'    => $_POST['purchase_date'] ?? date('Y-m-d'),
+            'provider_id'      => $_POST['provider_id'],
+            'type_name'        => trim($_POST['type_name']),
+            'unit_type'        => $_POST['unit_type'] ?? 'weight',
+            // Weight mode fields
+            'source_weight_grams' => (float)($_POST['source_weight_grams'] ?? 0),
+            'price_per_kilo'      => (float)($_POST['price_per_kilo'] ?? 0),
+            // Unit mode fields
+            'source_units'     => (int)($_POST['source_units'] ?? 0),
+            'price_per_unit'   => (float)($_POST['price_per_unit'] ?? 0),
+            'media_path'       => $media_path,
+            'created_by'       => $_SESSION['user_id']
         ];
 
         $service->sourceShipment($data);

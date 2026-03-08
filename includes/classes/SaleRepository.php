@@ -6,14 +6,20 @@ class SaleRepository extends BaseRepository
 
     public function create(array $data)
     {
+        // Ensure unit-mode fields have defaults so existing callers don't break
+        $data['unit_type']      = $data['unit_type'] ?? 'weight';
+        $data['quantity_units'] = $data['quantity_units'] ?? 0;
+        // due_date defaults to sale_date (avoid duplicate :sale_date placeholder)
+        $data['due_date'] = $data['due_date'] ?? $data['sale_date'];
+
         $sql = "INSERT INTO sales (
             sale_date, due_date, customer_id, qat_type_id, purchase_id, leftover_id, 
-            qat_status, weight_grams, weight_kg, price, payment_method, is_paid, 
+            qat_status, weight_grams, weight_kg, unit_type, quantity_units, price, payment_method, is_paid, 
             transfer_sender, transfer_receiver, transfer_number, transfer_company, 
             debt_type, notes
         ) VALUES (
-            :sale_date, :sale_date, :customer_id, :qat_type_id, :purchase_id, :leftover_id, 
-            :qat_status, :weight_grams, :weight_kg, :price, :payment_method, :is_paid, 
+            :sale_date, :due_date, :customer_id, :qat_type_id, :purchase_id, :leftover_id, 
+            :qat_status, :weight_grams, :weight_kg, :unit_type, :quantity_units, :price, :payment_method, :is_paid, 
             :transfer_sender, :transfer_receiver, :transfer_number, :transfer_company, 
             :debt_type, :notes
         )";
@@ -24,12 +30,22 @@ class SaleRepository extends BaseRepository
 
     public function getSoldKgByPurchaseId($purchaseId)
     {
-        return $this->fetchColumn("SELECT SUM(weight_kg) FROM sales WHERE purchase_id = ?", [$purchaseId]) ?: 0;
+        return $this->fetchColumn("SELECT SUM(weight_kg) FROM sales WHERE purchase_id = ? AND unit_type = 'weight'", [$purchaseId]) ?: 0;
+    }
+
+    public function getSoldUnitsByPurchaseId($purchaseId)
+    {
+        return $this->fetchColumn("SELECT SUM(quantity_units) FROM sales WHERE purchase_id = ? AND unit_type != 'weight'", [$purchaseId]) ?: 0;
     }
 
     public function getSoldKgByLeftoverId($leftoverId)
     {
-        return $this->fetchColumn("SELECT SUM(weight_kg) FROM sales WHERE leftover_id = ?", [$leftoverId]) ?: 0;
+        return $this->fetchColumn("SELECT SUM(weight_kg) FROM sales WHERE leftover_id = ? AND unit_type = 'weight'", [$leftoverId]) ?: 0;
+    }
+
+    public function getSoldUnitsByLeftoverId($leftoverId)
+    {
+        return $this->fetchColumn("SELECT SUM(quantity_units) FROM sales WHERE leftover_id = ? AND unit_type != 'weight'", [$leftoverId]) ?: 0;
     }
 
     public function getTodaySalesMapByPurchase($date)

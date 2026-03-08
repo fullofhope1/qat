@@ -126,7 +126,7 @@ $jsonCustomers = json_encode($customers);
                 <span>النوع: <b id="s_type">-</b></span>
                 <span>الرعوي: <b id="s_rawi">-</b></span>
                 <span>الزبون: <b id="s_cust">-</b></span>
-                <span>الوزن: <b id="s_weight">-</b></span>
+                <span id="label_weight">الوزن: <b id="s_weight">-</b></span>
                 <span>السعر: <b id="s_price">-</b></span>
             </div>
 
@@ -146,6 +146,8 @@ $jsonCustomers = json_encode($customers);
         <input type="hidden" name="purchase_id" id="i_pid">
         <input type="hidden" name="customer_id" id="i_cust">
         <input type="hidden" name="weight_grams" id="i_weight">
+        <input type="hidden" name="unit_type" id="i_unit_type">
+        <input type="hidden" name="quantity_units" id="i_units">
         <input type="hidden" name="price" id="i_price">
         <input type="hidden" name="payment_method" id="i_method">
 
@@ -218,19 +220,31 @@ $jsonCustomers = json_encode($customers);
             <div class="mt-4"><button type="button" class="btn btn-secondary" onclick="backStep(2)">عودة</button></div>
         </div>
 
-        <!-- STEP 4: Weight -->
+        <!-- STEP 4: Weight / Quantity -->
         <div id="step4" class="step-container">
-            <h3>الوزن</h3>
-            <div class="grid-container">
-                <!-- Gram Presets -->
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 50)">50 جرام<br>حق 1000</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 100)">100 جرام<br>ثمن</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 250)">250 جرام<br>ربع</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 500)">500 جرام<br>نص</button>
-                <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 1000)">1000 جرام<br>كيلو</button>
+            <h3 id="step4_title">الوزن</h3>
+            <div class="grid-container" id="weightGrid">
+                <!-- Weight Presets -->
+                <div id="weightPresets" class="d-flex flex-wrap justify-content-center gap-3 w-100">
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 50)">50 جرام<br>حق 1000</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 100)">100 جرام<br>ثمن</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 250)">250 جرام<br>ربع</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 500)">500 جرام<br>نص</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 1000)">1000 جرام<br>كيلو</button>
+                </div>
+
+                <!-- Unit Presets -->
+                <div id="unitPresets" class="d-none flex-wrap justify-content-center gap-3 w-100">
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 1)">1</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 2)">2</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 3)">3</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 4)">4</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 5)">5</button>
+                    <button type="button" class="circle-btn btn-weight" onclick="nextStep(4, 10)">10</button>
+                </div>
 
                 <!-- Manual Input -->
-                <button type="button" class="circle-btn bg-dark text-white" onclick="document.getElementById('manualWeight').classList.remove('d-none')">
+                <button type="button" class="circle-btn bg-dark text-white" onclick="showManualWeightOrUnits()">
                     يدوي
                 </button>
             </div>
@@ -248,6 +262,12 @@ $jsonCustomers = json_encode($customers);
                 </div>
                 <!-- Confirmation -->
                 <button type="button" class="btn btn-primary w-100 mt-3 p-2" onclick="confirmManualWeight()">تأكيد الوزن</button>
+            </div>
+
+            <div id="manualUnits" class="d-none mt-4 w-25 mx-auto">
+                <label id="manualUnitLabel">العدد</label>
+                <input type="number" id="m_units" class="form-control p-3 text-center fs-4" placeholder="العدد">
+                <button type="button" class="btn btn-primary w-100 mt-3 p-2" onclick="confirmManualUnits()">تأكيد العدد</button>
             </div>
 
             <div class="mt-4"><button type="button" class="btn btn-secondary" onclick="backStep(3)">عودة</button></div>
@@ -356,12 +376,33 @@ $jsonCustomers = json_encode($customers);
         } else if (step === 2) { // Provider
             document.getElementById('i_pid').value = data.id;
             document.getElementById('s_rawi').innerText = data.name;
+            const unitType = data.unit_type || 'weight';
+            document.getElementById('i_unit_type').value = unitType;
+
+            // UI Adjustments for Unit Mode
+            const isUnitMode = unitType !== 'weight';
+            document.getElementById('label_weight').innerHTML = isUnitMode ? `الكمية (${unitType}): <b id="s_weight">-</b>` : `الوزن: <b id="s_weight">-</b>`;
+            document.getElementById('step4_title').innerText = isUnitMode ? `الكمية (${unitType})` : 'الوزن';
+            document.getElementById('weightPresets').classList.toggle('d-none', isUnitMode);
+            document.getElementById('weightPresets').classList.toggle('d-flex', !isUnitMode);
+            document.getElementById('unitPresets').classList.toggle('d-none', !isUnitMode);
+            document.getElementById('unitPresets').classList.toggle('d-flex', isUnitMode);
+            document.getElementById('manualUnitLabel').innerText = isUnitMode ? `عدد ${unitType}` : 'العدد';
+
         } else if (step === 3) { // Customer
             document.getElementById('i_cust').value = data.id;
             document.getElementById('s_cust').innerText = data.name;
-        } else if (step === 4) { // Weight
-            document.getElementById('i_weight').value = data;
-            document.getElementById('s_weight').innerText = data + 'g';
+        } else if (step === 4) { // Weight / Units
+            const unitType = document.getElementById('i_unit_type').value;
+            if (unitType === 'weight') {
+                document.getElementById('i_weight').value = data;
+                document.getElementById('i_units').value = 0;
+                document.getElementById('s_weight').innerText = data + 'g';
+            } else {
+                document.getElementById('i_units').value = data;
+                document.getElementById('i_weight').value = 0;
+                document.getElementById('s_weight').innerText = data + ' ' + unitType;
+            }
         } else if (step === 5) { // Price
             document.getElementById('i_price').value = data;
             document.getElementById('s_price').innerText = data;
@@ -440,23 +481,33 @@ $jsonCustomers = json_encode($customers);
 
         if (providers.length === 0) {
             grid.innerHTML = '<div class="alert alert-warning w-100">لا يوجد منتج لهذا النوع اليوم (لا يوجد مخزون)</div>';
-            // REMOVED Fallback Button as per strict requirement
         } else {
             providers.forEach(p => {
                 const btn = document.createElement('button');
                 btn.className = 'circle-btn btn-provider';
 
+                const unitType = p.unit_type || 'weight';
+                const isUnitMode = unitType !== 'weight';
+
                 // Inventory Check
-                const remaining = parseFloat(p.remaining_kg);
+                let remaining, labelText;
+                if (isUnitMode) {
+                    remaining = parseInt(p.remaining_units);
+                    labelText = `${remaining} ${unitType}`;
+                } else {
+                    remaining = parseFloat(p.remaining_kg);
+                    labelText = `${remaining}kg`;
+                }
+
                 const isSoldOut = remaining <= 0;
 
                 let label = p.provider_name;
                 if (isSoldOut) {
                     label += '<br><small class="text-danger">(نفذ)</small>';
                     btn.style.opacity = '0.6';
-                    btn.disabled = true; // Prevent selection
+                    btn.disabled = true;
                 } else {
-                    label += `<br><small>${remaining}kg</small>`;
+                    label += `<br><small>${labelText}</small>`;
                 }
 
                 btn.innerHTML = label;
@@ -465,7 +516,8 @@ $jsonCustomers = json_encode($customers);
                 if (!isSoldOut) {
                     btn.onclick = () => nextStep(2, {
                         id: p.id,
-                        name: p.provider_name
+                        name: p.provider_name,
+                        unit_type: unitType
                     });
                 }
 
@@ -492,6 +544,26 @@ $jsonCustomers = json_encode($customers);
             nextStep(4, grams);
         } else {
             alert('الرجاء إدخال الوزن');
+        }
+    }
+
+    function showManualWeightOrUnits() {
+        const unitType = document.getElementById('i_unit_type').value;
+        if (unitType === 'weight') {
+            document.getElementById('manualWeight').classList.remove('d-none');
+            document.getElementById('manualUnits').classList.add('d-none');
+        } else {
+            document.getElementById('manualUnits').classList.remove('d-none');
+            document.getElementById('manualWeight').classList.add('d-none');
+        }
+    }
+
+    function confirmManualUnits() {
+        const units = document.getElementById('m_units').value;
+        if (units > 0) {
+            nextStep(4, units);
+        } else {
+            alert('الرجاء إدخال العدد');
         }
     }
 

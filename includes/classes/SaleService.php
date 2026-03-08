@@ -27,7 +27,14 @@ class SaleService extends BaseService
 
         foreach ($stock as &$item) {
             $sold = $salesMap[$item['id']] ?? 0;
-            $item['remaining_kg'] = round($item['quantity_kg'] - $sold, 3);
+            $unitType = $item['unit_type'] ?? 'weight';
+
+            if ($unitType === 'weight') {
+                $item['remaining_kg'] = round($item['quantity_kg'] - $sold, 3);
+            } else {
+                $item['remaining_units'] = (int)$item['quantity_kg'] - (int)$sold;
+                $item['remaining_kg'] = 0; // Or keep for compatibility if needed
+            }
         }
         return $stock;
     }
@@ -36,25 +43,51 @@ class SaleService extends BaseService
     {
         $this->saleRepo->beginTransaction();
         try {
-            $weightKg = (float)$data['weight_grams'] / 1000;
-            $data['weight_kg'] = $weightKg; // Ensure weight_kg is set for DB
+            $unitType = $data['unit_type'] ?? 'weight';
+            $isUnitMode = $unitType !== 'weight';
+
+            if ($isUnitMode) {
+                $quantityUnits = (int)($data['quantity_units'] ?? 0);
+                $data['weight_grams'] = 0;
+                $data['weight_kg'] = 0;
+            } else {
+                $weightKg = (float)$data['weight_grams'] / 1000;
+                $data['weight_kg'] = $weightKg;
+                $quantityUnits = 0;
+            }
 
             // 1. Inventory Check
             if (!empty($data['purchase_id'])) {
                 $totalPurchased = $this->purchaseRepo->getStockQuantity($data['purchase_id'], true);
-                $totalSold = $this->saleRepo->getSoldKgByPurchaseId($data['purchase_id']);
-                $available = round($totalPurchased - $totalSold, 3);
 
-                if ($weightKg > $available) {
-                    throw new Exception("InventoryExceeded|{$available}|{$weightKg}");
+                if ($isUnitMode) {
+                    $totalSold = $this->saleRepo->getSoldUnitsByPurchaseId($data['purchase_id']);
+                    $available = (int)$totalPurchased - (int)$totalSold;
+                    if ($quantityUnits > $available) {
+                        throw new Exception("InventoryExceeded|{$available} Units|{$quantityUnits} Units");
+                    }
+                } else {
+                    $totalSold = $this->saleRepo->getSoldKgByPurchaseId($data['purchase_id']);
+                    $available = round($totalPurchased - $totalSold, 3);
+                    if ($weightKg > $available) {
+                        throw new Exception("InventoryExceeded|{$available}kg|{$weightKg}kg");
+                    }
                 }
             } elseif (!empty($data['leftover_id'])) {
                 $totalLeftover = $this->leftoverRepo->getWeight($data['leftover_id'], true);
-                $totalSold = $this->saleRepo->getSoldKgByLeftoverId($data['leftover_id']);
-                $available = round($totalLeftover - $totalSold, 3);
 
-                if ($weightKg > $available) {
-                    throw new Exception("LeftoverExceeded|{$available}|{$weightKg}");
+                if ($isUnitMode) {
+                    $totalSold = $this->saleRepo->getSoldUnitsByLeftoverId($data['leftover_id']);
+                    $available = (int)$totalLeftover - (int)$totalSold;
+                    if ($quantityUnits > $available) {
+                        throw new Exception("LeftoverExceeded|{$available} Units|{$quantityUnits} Units");
+                    }
+                } else {
+                    $totalSold = $this->saleRepo->getSoldKgByLeftoverId($data['leftover_id']);
+                    $available = round($totalLeftover - $totalSold, 3);
+                    if ($weightKg > $available) {
+                        throw new Exception("LeftoverExceeded|{$available}kg|{$weightKg}kg");
+                    }
                 }
             }
 

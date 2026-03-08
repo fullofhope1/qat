@@ -1,9 +1,9 @@
 <?php
 // config/db.php
-$host = 'sql111.infinityfree.com';
-$dbname = 'if0_41103629_qat';     // <--- MAKE SURE THIS MATCHES THE NEW NAME
-$username = 'if0_41103629';
-$password = 'HpnYShAsAaK';
+$host = 'localhost';
+$dbname = 'qat_erp';
+$username = 'root';
+$password = ''; // Default XAMPP password
 
 // Set Timezone for PHP
 date_default_timezone_set('Asia/Aden');

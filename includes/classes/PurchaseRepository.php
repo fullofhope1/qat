@@ -18,11 +18,15 @@ class PurchaseRepository extends BaseRepository
         $sql = "INSERT INTO purchases (
             purchase_date, provider_id, qat_type_id, source_weight_grams, 
             quantity_kg, price_per_kilo, agreed_price, is_received, 
-            status, media_path, created_by
+            status, media_path, created_by,
+            unit_type, source_units, price_per_unit,
+            received_at, received_weight_grams
         ) VALUES (
             :purchase_date, :provider_id, :qat_type_id, :source_weight_grams, 
             :quantity_kg, :price_per_kilo, :agreed_price, :is_received, 
-            :status, :media_path, :created_by
+            :status, :media_path, :created_by,
+            :unit_type, :source_units, :price_per_unit,
+            :received_at, :received_weight_grams
         )";
         return $this->execute($sql, $data);
     }

@@ -1,0 +1,47 @@
+﻿--- Schema for purchases ---
+Field: id | Type: int(11) | Null: NO | Key: PRI | Default: 
+Field: purchase_date | Type: date | Null: NO | Key: MUL | Default: 
+Field: qat_type_id | Type: int(11) | Null: YES | Key: MUL | Default: 
+Field: source_weight_grams | Type: decimal(10,2) | Null: YES | Key:  | Default: 0.00
+Field: received_weight_grams | Type: decimal(10,2) | Null: YES | Key:  | Default: 0.00
+Field: provider_id | Type: int(11) | Null: YES | Key:  | Default: 
+Field: expected_quantity_kg | Type: decimal(10,2) | Null: YES | Key:  | Default: 0.00
+Field: vendor_name | Type: varchar(100) | Null: YES | Key:  | Default: 
+Field: agreed_price | Type: decimal(10,2) | Null: NO | Key:  | Default: 
+Field: price_per_kilo | Type: decimal(10,2) | Null: YES | Key:  | Default: 0.00
+Field: discount | Type: decimal(10,2) | Null: YES | Key:  | Default: 0.00
+Field: net_cost | Type: decimal(10,2) | Null: YES | Key:  | Default: 
+Field: quantity_kg | Type: decimal(10,2) | Null: YES | Key:  | Default: 
+Field: status | Type: enum('Fresh','Momsi','Closed') | Null: YES | Key:  | Default: Fresh
+Field: media_path | Type: varchar(255) | Null: YES | Key:  | Default: 
+Field: is_received | Type: tinyint(1) | Null: YES | Key:  | Default: 1
+Field: received_at | Type: datetime | Null: YES | Key:  | Default: 
+Field: created_at | Type: timestamp | Null: NO | Key:  | Default: current_timestamp()
+Field: created_by | Type: int(11) | Null: YES | Key:  | Default: 
+Field: original_purchase_id | Type: int(11) | Null: YES | Key: MUL | Default: 
+
+--- Schema for qat_types ---
+Field: id | Type: int(11) | Null: NO | Key: PRI | Default: 
+Field: name | Type: varchar(100) | Null: NO | Key:  | Default: 
+Field: description | Type: text | Null: YES | Key:  | Default: 
+Field: is_deleted | Type: tinyint(1) | Null: YES | Key:  | Default: 0
+Field: media_path | Type: varchar(255) | Null: YES | Key:  | Default: 
+
+--- Schema for leftovers ---
+Field: id | Type: int(11) | Null: NO | Key: PRI | Default: 
+Field: source_date | Type: date | Null: NO | Key:  | Default: 
+Field: purchase_id | Type: int(11) | Null: YES | Key:  | Default: 
+Field: qat_type_id | Type: int(11) | Null: YES | Key: MUL | Default: 
+Field: weight_kg | Type: decimal(10,2) | Null: NO | Key:  | Default: 
+Field: status | Type: enum('Pending','Dropped','Transferred_Next_Day','Sold','Auto_Momsi','Auto_Dropped') | Null: YES | Key:  | Default: Pending
+Field: decision_date | Type: date | Null: YES | Key:  | Default: 
+Field: sale_date | Type: date | Null: YES | Key:  | Default: 
+Field: created_at | Type: timestamp | Null: NO | Key:  | Default: current_timestamp()
+
+--- Schema for providers ---
+Field: id | Type: int(11) | Null: NO | Key: PRI | Default: 
+Field: name | Type: varchar(100) | Null: NO | Key:  | Default: 
+Field: phone | Type: varchar(20) | Null: YES | Key:  | Default: 
+Field: created_at | Type: timestamp | Null: NO | Key:  | Default: current_timestamp()
+Field: created_by | Type: int(11) | Null: YES | Key:  | Default: 
+

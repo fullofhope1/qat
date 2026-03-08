@@ -1,15 +1,10 @@
 <?php
-require 'config/db.php';
-header('Content-Type: text/plain; charset=utf-8');
-
-function dumpTable($pdo, $table)
-{
-    echo "--- TABLE: $table ---\n";
-    $stmt = $pdo->query("SHOW CREATE TABLE $table");
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    echo $row['Create Table'] . "\n\n";
+require 'c:/xampp/htdocs/qat/config/db.php';
+$tables = ['purchases', 'products'];
+foreach ($tables as $table) {
+    echo "--- Schema for $table ---\n";
+    $stmt = $pdo->query("DESCRIBE $table");
+    while ($row = $stmt->fetch()) {
+        print_r($row);
+    }
 }
-
-dumpTable($pdo, 'leftovers');
-dumpTable($pdo, 'sales');
-dumpTable($pdo, 'purchases');

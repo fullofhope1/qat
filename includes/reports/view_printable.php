@@ -10,6 +10,11 @@ $depSAR = $depositsRaw['SAR'] ?? 0;
 $depUSD = $depositsRaw['USD'] ?? 0;
 
 $listDebtSales = $reportRepo->getDebtSalesList($reportType, $date, $month, $year);
+$leftoversSummary = $breakdowns['leftovers'];
+$totalDroppedKg    = ($leftoversSummary['manual_dropped_kg'] ?? 0) + ($leftoversSummary['auto_dropped_kg'] ?? 0);
+$totalMomsiKg      = ($leftoversSummary['manual_momsi_kg'] ?? 0) + ($leftoversSummary['auto_momsi_kg'] ?? 0);
+$totalDroppedUnits = ($leftoversSummary['manual_dropped_units'] ?? 0) + ($leftoversSummary['auto_dropped_units'] ?? 0);
+$totalMomsiUnits   = ($leftoversSummary['manual_momsi_units'] ?? 0) + ($leftoversSummary['auto_momsi_units'] ?? 0);
 
 // CALCULATIONS
 $totalSalesWithTransfers = $ps['cash_sales'] + $ps['transfer_sales'];
@@ -272,6 +277,7 @@ if ($reportType === 'Monthly') {
                         <thead>
                             <tr>
                                 <th>اسم المورد / الرعوي</th>
+                                <th class="text-center">الكمية</th>
                                 <th class="text-end">المبلغ المستحق</th>
                             </tr>
                         </thead>
@@ -283,6 +289,13 @@ if ($reportType === 'Monthly') {
                             ?>
                                 <tr>
                                     <td><?= htmlspecialchars($p['prov_name']) ?> <small class="text-muted">(<?= $p['type_name'] ?>)</small></td>
+                                    <td class="text-center">
+                                        <?php if (($p['unit_type'] ?? 'weight') === 'weight'): ?>
+                                            <?= number_format($p['received_weight_grams'] / 1000, 2) ?> كجم
+                                        <?php else: ?>
+                                            <?= (int)$p['quantity_kg'] ?> <?= $p['unit_type'] ?>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-end fw-bold"><?= number_format($p['net_cost']) ?></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -294,7 +307,7 @@ if ($reportType === 'Monthly') {
                         </tbody>
                         <tfoot>
                             <tr class="fw-bold bg-light">
-                                <td>إجمالي الالتزامات للشراء</td>
+                                <td colspan="2">إجمالي الالتزامات للشراء</td>
                                 <td class="text-end h6 mb-0"><?= number_format($totP) ?></td>
                             </tr>
                         </tfoot>
@@ -326,13 +339,29 @@ if ($reportType === 'Monthly') {
                                 </tr>
                             <?php endif; ?>
                         </tbody>
-                        <tfoot>
-                            <tr class="fw-bold bg-light">
-                                <td>إجمالي المصروفات</td>
-                                <td class="text-end h6 mb-0"><?= number_format($totalExpenses) ?></td>
-                            </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <div class="mt-5">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="fas fa-recycle me-2 opacity-50"></i>
+                        تقرير البقايا والتوالف
+                    </h5>
+                    <div class="p-3 border rounded">
+                        <div class="summary-row">
+                            <span>إجمالي التالف (Dropped):</span>
+                            <span class="meta-value text-danger">
+                                <?= number_format($totalDroppedKg, 2) ?> كجم | <?= (int)$totalDroppedUnits ?> ق/ق
+                            </span>
+                        </div>
+                        <div class="summary-row">
+                            <span>إجمالي الممسي (Momsi):</span>
+                            <span class="meta-value text-primary">
+                                <?= number_format($totalMomsiKg, 2) ?> كجم | <?= (int)$totalMomsiUnits ?> ق/ق
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

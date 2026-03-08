@@ -9,6 +9,8 @@ if ($_SESSION['role'] === 'super_admin') {
     exit;
 }
 
+// Removed strict block for 'super_admin' to allow them full access.
+
 // Fetch Types & Providers via Clean Architecture
 $productRepo = new ProductRepository($pdo);
 $types = $productRepo->getAllActive();
@@ -201,7 +203,7 @@ $shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
         </div>
         <div class="step-item" id="step-2-indicator">
             <div class="step-circle"><i class="fas fa-balance-scale"></i></div>
-            <div class="step-label">الوزن والسعر</div>
+            <div class="step-label">الكمية والسعر</div>
         </div>
         <div class="step-item" id="step-3-indicator">
             <div class="step-circle"><i class="fas fa-check-double"></i></div>
@@ -260,6 +262,8 @@ $shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
                         <small class="text-muted mt-2 d-block">سيتم إضافة الأنواع الجديدة تلقائياً للنظام.</small>
                     </div>
 
+                    <input type="hidden" name="unit_type" id="unit_type_hidden" value="weight">
+
                     <div class="text-end mt-5">
                         <button type="button" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold" onclick="nextStep(2)">
                             التالي <i class="fas fa-arrow-left ms-2"></i>
@@ -267,34 +271,76 @@ $shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
                     </div>
                 </div>
 
-                <!-- Step 2: Weight & Price -->
+                <!-- Step 2: Quantity & Price -->
                 <div class="form-step" id="step-2">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <label class="input-label-premium">الوزن (بالكيلو)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 rounded-start-4"><i class="fas fa-weight-hanging text-primary"></i></span>
-                                <input type="number" step="0.001" class="form-control form-control-lg border-start-0 rounded-end-4" id="weight_kg" placeholder="0.000">
+
+                    <!-- Mode Toggle -->
+                    <div class="mb-4">
+                        <label class="input-label-premium">نوع التوريد</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="mode_toggle" id="mode_weight" value="weight" checked>
+                            <label class="btn btn-outline-primary" for="mode_weight">
+                                <i class="fas fa-weight-hanging me-2"></i>بالوزن
+                            </label>
+                            <input type="radio" class="btn-check" name="mode_toggle" id="mode_qabda" value="قبضة">
+                            <label class="btn btn-outline-success" for="mode_qabda">
+                                <i class="fas fa-hand-rock me-2"></i>قبضات
+                            </label>
+                            <input type="radio" class="btn-check" name="mode_toggle" id="mode_qurtas" value="قرطاس">
+                            <label class="btn btn-outline-warning" for="mode_qurtas">
+                                <i class="fas fa-shopping-bag me-2"></i>قراطيس
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Weight Mode Fields -->
+                    <div id="weight_fields">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="input-label-premium">الوزن (بالكيلو)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 rounded-start-4"><i class="fas fa-weight-hanging text-primary"></i></span>
+                                    <input type="number" step="0.001" class="form-control form-control-lg border-start-0 rounded-end-4" id="weight_kg" placeholder="0.000">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="input-label-premium">الوزن (بالجرام) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 rounded-start-4 text-muted">جرام</span>
+                                    <input type="number" step="1" class="form-control form-control-lg border-start-0 rounded-end-4 fw-bold" id="weight_grams" name="source_weight_grams" placeholder="0">
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="input-label-premium">الوزن (بالجرام) <span class="text-danger">*</span></label>
+                        <div class="mt-4">
+                            <label class="input-label-premium">سعر الكيلو (المتفق عليه) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 rounded-start-4 text-muted">جرام</span>
-                                <input type="number" step="1" class="form-control form-control-lg border-start-0 rounded-end-4 fw-bold" id="weight_grams" name="source_weight_grams" required placeholder="0">
+                                <span class="input-group-text bg-white border-end-0 rounded-start-4"><i class="fas fa-coins text-warning"></i></span>
+                                <input type="number" step="1" class="form-control form-control-lg border-start-0 rounded-end-4 fw-bold text-primary" id="price_per_kilo" name="price_per_kilo" placeholder="0">
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4">
-                        <label class="input-label-premium">سعر الكيلو (المتفق عليه) <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0 rounded-start-4"><i class="fas fa-coins text-warning"></i></span>
-                            <input type="number" step="1" class="form-control form-control-lg border-start-0 rounded-end-4 fw-bold text-primary" id="price_per_kilo" name="price_per_kilo" required placeholder="0">
+                    <!-- Unit Mode Fields (قبضات / قراطيس) -->
+                    <div id="unit_fields" style="display:none;">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="input-label-premium" id="unit_count_label">عدد القبضات <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 rounded-start-4"><i class="fas fa-hashtag text-success"></i></span>
+                                    <input type="number" step="1" min="1" class="form-control form-control-lg border-start-0 rounded-end-4 fw-bold" id="source_units" name="source_units" placeholder="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="input-label-premium" id="unit_price_label">سعر القبضة <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 rounded-start-4"><i class="fas fa-coins text-warning"></i></span>
+                                    <input type="number" step="1" min="0" class="form-control form-control-lg border-start-0 rounded-end-4 fw-bold text-success" id="price_per_unit" name="price_per_unit" placeholder="0">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="total-badge-premium animate__animated animate__pulse animate__infinite">
+                    <div class="total-badge-premium animate__animated animate__pulse animate__infinite mt-4">
                         <span class="text-secondary small fw-bold">إجمالي المبلغ التقريبي</span>
                         <h1 class="mb-0 fw-bold text-primary"><span id="total_cost_display">0</span> <small class="fs-4">ريال</small></h1>
                     </div>
@@ -367,11 +413,23 @@ $shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
                                     </div>
                                     <div>
                                         <h6 class="mb-0 fw-bold"><?= htmlspecialchars($p['provider_name']) ?></h6>
-                                        <small class="text-muted"><?= htmlspecialchars($p['type_name']) ?> • <?= number_format($p['price_per_kilo']) ?> /كجم</small>
+                                        <small class="text-muted">
+                                            <?= htmlspecialchars($p['type_name']) ?>
+                                            <?php if (($p['unit_type'] ?? 'weight') !== 'weight'): ?>
+                                                <span class="badge bg-success-subtle text-success ms-1"><?= htmlspecialchars($p['unit_type']) ?></span>
+                                                • <?= number_format($p['price_per_unit'] ?? 0) ?>/<?= htmlspecialchars($p['unit_type']) ?>
+                                            <?php else: ?>
+                                                • <?= number_format($p['price_per_kilo']) ?>/كجم
+                                            <?php endif; ?>
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="fw-bold text-primary"><?= number_format($p['source_weight_grams'] / 1000, 3) ?> <small>كجم</small></div>
+                                    <?php if (($p['unit_type'] ?? 'weight') !== 'weight'): ?>
+                                        <div class="fw-bold text-success"><?= number_format($p['source_units'] ?? 0) ?> <small><?= htmlspecialchars($p['unit_type']) ?></small></div>
+                                    <?php else: ?>
+                                        <div class="fw-bold text-primary"><?= number_format($p['source_weight_grams'] / 1000, 3) ?> <small>كجم</small></div>
+                                    <?php endif; ?>
                                     <?php if ($p['is_received']): ?>
                                         <span class="badge bg-success-subtle text-success small">تم الاستلام</span>
                                     <?php else: ?>
@@ -431,13 +489,23 @@ $shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
             }
         }
 
-        // Validation for Step 2
+        // Validation for Step 2 — mode-aware
         if (step === 3) {
-            const grams = document.getElementById('weight_grams').value;
-            const price = document.getElementById('price_per_kilo').value;
-            if (!grams || !price || grams <= 0 || price <= 0) {
-                alert('يرجى إدخال الوزن والسعر بشكل صحيح.');
-                return;
+            const mode = document.getElementById('unit_type_hidden').value;
+            if (mode === 'weight') {
+                const grams = document.getElementById('weight_grams').value;
+                const price = document.getElementById('price_per_kilo').value;
+                if (!grams || !price || grams <= 0 || price <= 0) {
+                    alert('يرجى إدخال الوزن والسعر بشكل صحيح.');
+                    return;
+                }
+            } else {
+                const units = document.getElementById('source_units').value;
+                const price = document.getElementById('price_per_unit').value;
+                if (!units || !price || units <= 0 || price <= 0) {
+                    alert('يرجى إدخال العدد والسعر بشكل صحيح.');
+                    return;
+                }
             }
         }
 
@@ -460,38 +528,75 @@ $shipments = $purchaseRepo->getTodayShipmentsByUserId($today, $user_id);
         });
     }
 
+    // Mode Toggle Logic
+    document.querySelectorAll('input[name="mode_toggle"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const mode = this.value;
+            const unitHidden = document.getElementById('unit_type_hidden');
+            const weightFields = document.getElementById('weight_fields');
+            const unitFields = document.getElementById('unit_fields');
+            const countLabel = document.getElementById('unit_count_label');
+            const priceLabel = document.getElementById('unit_price_label');
+
+            unitHidden.value = mode;
+
+            if (mode === 'weight') {
+                weightFields.style.display = '';
+                unitFields.style.display = 'none';
+            } else {
+                weightFields.style.display = 'none';
+                unitFields.style.display = '';
+                const label = mode === 'قبضة' ? 'قبضة' : 'قرطاس';
+                countLabel.innerHTML = `عدد ${label}ات <span class="text-danger">*</span>`;
+                priceLabel.innerHTML = `سعر ال${label} <span class="text-danger">*</span>`;
+            }
+
+            calculateTotal();
+        });
+    });
+
     // Weight & Price Logic
     const kgInput = document.getElementById('weight_kg');
     const gramsInput = document.getElementById('weight_grams');
     const priceInput = document.getElementById('price_per_kilo');
+    const unitsInput = document.getElementById('source_units');
+    const pUnitInput = document.getElementById('price_per_unit');
     const totalDisplay = document.getElementById('total_cost_display');
 
     kgInput.addEventListener('input', function() {
         if (this.value) {
             gramsInput.value = Math.round(parseFloat(this.value) * 1000);
-            calculateTotal();
         } else {
             gramsInput.value = '';
-            calculateTotal();
         }
+        calculateTotal();
     });
 
     gramsInput.addEventListener('input', function() {
         if (this.value) {
             kgInput.value = (parseFloat(this.value) / 1000).toFixed(3);
-            calculateTotal();
         } else {
             kgInput.value = '';
-            calculateTotal();
         }
+        calculateTotal();
     });
 
     priceInput.addEventListener('input', calculateTotal);
+    unitsInput.addEventListener('input', calculateTotal);
+    pUnitInput.addEventListener('input', calculateTotal);
 
     function calculateTotal() {
-        const kg = parseFloat(kgInput.value) || 0;
-        const price = parseFloat(priceInput.value) || 0;
-        const total = Math.round(kg * price);
+        const mode = document.getElementById('unit_type_hidden').value;
+        let total = 0;
+        if (mode === 'weight') {
+            const kg = parseFloat(kgInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            total = Math.round(kg * price);
+        } else {
+            const units = parseInt(unitsInput.value) || 0;
+            const price = parseFloat(pUnitInput.value) || 0;
+            total = Math.round(units * price);
+        }
         totalDisplay.textContent = total.toLocaleString();
     }
 

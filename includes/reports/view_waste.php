@@ -1,6 +1,6 @@
 <?php
-// includes/reports/view_waste.php
 $totalWasteWeight = array_sum(array_column($listWaste, 'weight_kg'));
+$totalWasteUnits  = array_sum(array_column($listWaste, 'quantity_units'));
 ?>
 
 <div class="card report-table-card shadow-sm border-0 mb-4">
@@ -10,7 +10,7 @@ $totalWasteWeight = array_sum(array_column($listWaste, 'weight_kg'));
         </h5>
         <div>
             <span class="badge bg-danger fs-6 fw-normal me-2">
-                إجمالي الوزن التالف: <?= number_format($totalWasteWeight, 3) ?> كجم
+                إجمالي التالف: <?= number_format($totalWasteWeight, 3) ?> كجم | <?= (int)$totalWasteUnits ?> ق/ق
             </span>
             <span class="badge bg-light text-muted fw-normal"><?= count($listWaste) ?> عملية</span>
         </div>
@@ -47,7 +47,11 @@ $totalWasteWeight = array_sum(array_column($listWaste, 'weight_kg'));
                                 </span>
                             </td>
                             <td class="text-end fw-bold text-danger fs-5">
-                                <?= number_format($w['weight_kg'], 3) ?>
+                                <?php if ($w['weight_kg'] > 0.001): ?>
+                                    <?= number_format($w['weight_kg'], 3) ?> <small class="fs-6 text-muted">كجم</small>
+                                <?php else: ?>
+                                    <?= (int)$w['quantity_units'] ?> <small class="fs-6 text-muted">وحدة</small>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($w['status'] == 'Auto_Dropped'): ?>

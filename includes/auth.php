@@ -75,7 +75,7 @@ function getHomeLink()
 {
     if (!isset($_SESSION['user_id'])) return 'index.php';
     if ($_SESSION['role'] === 'user') return 'index.php';
-    if ($_SESSION['role'] === 'admin') return 'sourcing.php'; // Primary for admin
+    if ($_SESSION['role'] === 'admin') return 'admin_dashboard.php'; // Primary for admin
 
     $sub_role = $_SESSION['sub_role'] ?? 'full';
     $permissions = [

@@ -26,11 +26,31 @@ class PurchaseService extends BaseService
             ]);
         }
 
-        // Calculations
-        $weightKg = (float)$data['source_weight_grams'] / 1000;
-        $data['agreed_price'] = $weightKg * (float)$data['price_per_kilo'];
-        $data['quantity_kg'] = 0; // Not received yet
-        $data['is_received'] = 0;
+        $unitType = $data['unit_type'] ?? 'weight';
+
+        if ($unitType !== 'weight') {
+            // Unit mode (قبضة / قرطاس): received immediately — no shipping step
+            $units = (int)($data['source_units'] ?? 0);
+            $pricePerUnit = (float)($data['price_per_unit'] ?? 0);
+            $data['source_weight_grams']  = 0;
+            $data['received_weight_grams'] = 0;
+            $data['price_per_kilo']       = 0;
+            $data['agreed_price']         = $units * $pricePerUnit;
+            $data['quantity_kg']          = $units; // units count stored in quantity_kg for inventory
+            $data['is_received']          = 1;      // immediately in stock
+            $data['received_at']          = date('Y-m-d H:i:s');
+        } else {
+            // Weight mode: goes through a separate receiving step
+            $weightKg = (float)$data['source_weight_grams'] / 1000;
+            $data['agreed_price']  = $weightKg * (float)$data['price_per_kilo'];
+            $data['quantity_kg']   = 0; // Not received yet
+            $data['source_units']  = 0;
+            $data['price_per_unit'] = 0;
+            $data['is_received']   = 0;
+            $data['received_at']   = null;
+            $data['received_weight_grams'] = 0;
+        }
+
         $data['status'] = 'Fresh';
 
         // Clean up data for repo
@@ -89,6 +109,11 @@ class PurchaseService extends BaseService
     {
         $data['is_received'] = 1; // Direct fresh purchase is usually received
         $data['source_weight_grams'] = $data['source_weight_grams'] ?? ($data['quantity_kg'] * 1000);
+        $data['received_weight_grams'] = $data['received_weight_grams'] ?? $data['source_weight_grams'];
+        $data['received_at'] = $data['received_at'] ?? date('Y-m-d H:i:s');
+        $data['unit_type'] = $data['unit_type'] ?? 'weight';
+        $data['source_units'] = $data['source_units'] ?? 0;
+        $data['price_per_unit'] = $data['price_per_unit'] ?? 0;
         return $this->purchaseRepo->create($data);
     }
 

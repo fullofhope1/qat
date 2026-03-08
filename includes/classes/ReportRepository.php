@@ -173,7 +173,11 @@ class ReportRepository extends BaseRepository
                 SUM(CASE WHEN status IN ('Dropped') THEN weight_kg ELSE 0 END) as manual_dropped_kg,
                 SUM(CASE WHEN status = 'Auto_Dropped' THEN weight_kg ELSE 0 END) as auto_dropped_kg,
                 SUM(CASE WHEN status = 'Transferred_Next_Day' THEN weight_kg ELSE 0 END) as manual_momsi_kg,
-                SUM(CASE WHEN status = 'Auto_Momsi' THEN weight_kg ELSE 0 END) as auto_momsi_kg
+                SUM(CASE WHEN status = 'Auto_Momsi' THEN weight_kg ELSE 0 END) as auto_momsi_kg,
+                SUM(CASE WHEN status IN ('Dropped') THEN quantity_units ELSE 0 END) as manual_dropped_units,
+                SUM(CASE WHEN status = 'Auto_Dropped' THEN quantity_units ELSE 0 END) as auto_dropped_units,
+                SUM(CASE WHEN status = 'Transferred_Next_Day' THEN quantity_units ELSE 0 END) as manual_momsi_units,
+                SUM(CASE WHEN status = 'Auto_Momsi' THEN quantity_units ELSE 0 END) as auto_momsi_units
                 FROM leftovers $where";
         return $this->fetchOne($sql, $params);
     }

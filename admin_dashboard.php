@@ -1,9 +1,13 @@
 <?php
-session_start();
+require_once 'config/db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: index.php?auth=1");
     exit;
 }
+$today = date('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -102,12 +106,24 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
                             <p class="text-secondary fs-5 mb-4">
                                 ابدأ بتسجيل الشحنات اليومية، إدارة الموردين (الرعية)، وتتبع المبالغ المصروفة في الميدان بكل سهولة ودقة.
                             </p>
-                            <div class="d-grid gap-3 d-md-flex">
-                                <a href="sourcing.php" class="btn btn-warning btn-lg px-5 py-3 fw-bold rounded-pill shadow-sm">
-                                    <i class="fas fa-plus-circle me-2"></i> واجهة التوريد
+                            <div class="d-grid gap-3 d-md-flex flex-wrap mt-3">
+                                <a href="sourcing.php" class="btn btn-warning btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm">
+                                    <i class="fas fa-plus-circle me-2"></i> التوريد
                                 </a>
-                                <a href="providers.php" class="btn btn-outline-dark btn-lg px-5 py-3 fw-bold rounded-pill">
-                                    <i class="fas fa-users-cog me-2"></i> إدارة الموردين
+                                <a href="providers.php" class="btn btn-outline-dark btn-lg px-4 py-3 fw-bold rounded-pill">
+                                    <i class="fas fa-users-cog me-2"></i> الرعية
+                                </a>
+                                <a href="expenses.php" class="btn btn-info text-white btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm">
+                                    <i class="fas fa-wallet me-2"></i> المصاريف
+                                </a>
+                                <a href="staff.php" class="btn btn-secondary btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm">
+                                    <i class="fas fa-user-hard-hat me-2"></i> الموظفين
+                                </a>
+                                <a href="refunds.php" class="btn btn-danger btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm">
+                                    <i class="fas fa-hand-holding-usd me-2"></i> التعويضات
+                                </a>
+                                <a href="admin_report.php" class="btn btn-success btn-lg px-4 py-3 fw-bold rounded-pill shadow-sm">
+                                    <i class="fas fa-chart-bar me-2"></i> التقارير
                                 </a>
                             </div>
                         </div>
